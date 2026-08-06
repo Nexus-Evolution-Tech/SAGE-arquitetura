@@ -146,14 +146,14 @@ O implementador não escolhe por intuição. A regra:
 
 | Categoria | Papel | Exemplos |
 |---|---|---|
-| Destrutiva ou de configuração | `ADMINISTRADOR` | `zerar-tudo`, `zerar-logs`, `limpar`, promoção, importação, gestão de usuário, config de dispositivo |
+| Destrutiva ou de configuração | `ADMINISTRADOR` | `comecar-do-zero`, `zerar-tudo`, `zerar-logs`, `limpar`, promoção, importação, gestão de usuário, config de dispositivo |
 | Escrita de dado de negócio | `SECRETARIA` | criar/editar pessoa, turma, grade, aprovar solicitação |
 | Leitura de dado de negócio | `SECRETARIA` | relatórios, listagens, histórico |
 | Infraestrutura sem dado | `publica()` | `GET /health`, `GET /ready` |
 | **Monitoramento `[V11]`** | **`ADMINISTRADOR`** | as dez rotas de `monitoringRoutes.js` |
 
-**Sobre o monitoramento:** hoje `/monitoring/state`, `/monitoring/users` e as duas que mutam
-(limpar cache, sync-db) não têm autenticação nenhuma. Todas passam a exigir administrador.
+**Sobre o monitoramento:** hoje `/monitoring/state`, `/monitoring/users` e `POST /monitoring/cache/clear`, a única que muta,
+não têm autenticação nenhuma. Todas passam a exigir administrador.
 
 **Sobre a superfície duplicada `[V12]`:** `loadRoutes.js:16` monta todo `*Routes.js` em `/`,
 e `app.js:99` monta `monitoringRoutes` **de novo** em `/monitoring`, criando
@@ -210,7 +210,7 @@ conhece.
 - [ ] **O CI reprova quando uma rota nova não declara papel nem `publica()`**
 - [ ] As dez rotas de `monitoringRoutes.js` exigem administrador `[V11]`
 - [ ] Não existe mais superfície duplicada de monitoramento `[V12]`
-- [ ] `zerar-tudo` e as demais rotas destrutivas exigem administrador `[V8]`
+- [ ] `comecar-do-zero` (o apagamento global do banco), `zerar-tudo` e as demais rotas destrutivas exigem administrador `[V8]`
 
 **Trilha**
 - [ ] `UPDATE` e `DELETE` em `TrilhaAuditoria` são rejeitados
