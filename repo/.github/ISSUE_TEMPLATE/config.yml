@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Roadmap e arquitetura
+    url: https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/main/docs/arquitetura/SAGE-ROADMAP.md
+    about: "Leia antes de abrir issue. O roadmap manda nos outros documentos."
+  - name: 🤖 Regras para agentes de código
+    url: https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/main/AGENTS.md
+    about: "Obrigatório para Claude Code, Codex e qualquer agente neste repositório."

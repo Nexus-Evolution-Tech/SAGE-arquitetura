@@ -1,0 +1,77 @@
+name: "🧭 Decisão de arquitetura"
+description: "Escolha que muda desenho e precisa de aprovação humana antes de virar código"
+title: "[ADR] "
+labels: ["decisao-arquitetura", "bloqueante"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use quando encontrar uma escolha que os documentos não cobrem, ou quando dois
+        documentos se contradisserem.
+
+        **Agentes: abra esta issue e pare. Não decida por conta própria e siga em frente.**
+        Uma pergunta custa um dia; uma decisão errada assumida em silêncio custa semanas.
+
+  - type: textarea
+    id: questao
+    attributes:
+      label: A questão
+      description: "Uma frase. Qual escolha precisa ser feita."
+      placeholder: "Aluno sem turma cadastrada deve ser sincronizado para a catraca?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Por que apareceu
+      description: "O que estava sendo feito quando a dúvida surgiu"
+    validations:
+      required: true
+
+  - type: textarea
+    id: opcoes
+    attributes:
+      label: Opções e consequências
+      value: |
+        ### Opção A —
+        **Prós:**
+        **Contras:**
+        **Consequência se o sistema estiver fora do ar:**
+
+        ### Opção B —
+        **Prós:**
+        **Contras:**
+        **Consequência se o sistema estiver fora do ar:**
+    validations:
+      required: true
+
+  - type: textarea
+    id: recomendacao
+    attributes:
+      label: Recomendação de quem abriu
+      description: "Qual opção e por quê. Recomendar é útil; decidir sozinho não."
+
+  - type: dropdown
+    id: quem-decide
+    attributes:
+      label: Quem precisa decidir
+      options:
+        - "Arquiteto — decisão técnica"
+        - "Dono do produto — trade-off de produto"
+        - "Escola / direção — política, disciplina ou dado pessoal"
+    validations:
+      required: true
+
+  - type: textarea
+    id: bloqueia
+    attributes:
+      label: O que está bloqueado
+      placeholder: "#42 não avança sem isto"
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Ao decidir:** registre a decisão e o porquê num comentário, adicione o ADR ao
+        `SAGE-ROADMAP.md` §2 se for estrutural, e feche a issue referenciando o commit.

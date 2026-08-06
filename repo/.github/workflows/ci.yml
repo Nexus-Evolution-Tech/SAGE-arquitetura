@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Barreiras que transformam as regras do AGENTS.md em algo que reprova o PR.
+  # Regra que não é enforçada apodrece.
+  # ──────────────────────────────────────────────────────────────────────────
+  regras:
+    name: Regras invioláveis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nenhum catch vazio
+        run: |
+          # AGENTS.md §4.2 — já causou bug em produção
+          if grep -rEn 'catch\s*\([^)]*\)\s*\{\s*\}' src/ --include='*.js'; then
+            echo "::error::catch vazio encontrado. Todo erro deve ser registrado com logger.error."
+            exit 1
+          fi
+
+      - name: Nenhum catch que retorna sucesso
+        run: |
+          # Padrão que gerou o BUG-3: falha reportada como sucesso
+          if grep -rEn -A4 'catch\s*\(' src/ --include='*.js' | grep -E 'sucesso:\s*true'; then
+            echo "::error::catch retornando sucesso:true. Falha parcial e falha."
+            exit 1
+          fi
+
+      - name: Nenhum console.log em produção
+        run: |
+          if grep -rn 'console\.\(log\|debug\|info\)' src/ --include='*.js'; then
+            echo "::error::console.log em src/. Use o logger (Winston)."
+            exit 1
+          fi
+
+      - name: Escrita na catraca e idempotente
+        run: |
+          # AGENTS.md §4.5 — create_objects duplica quando a rede cai e reenviamos
+          if grep -rn 'create_objects\.fcgi' src/ --include='*.js'; then
+            echo "::error::use create_or_update_objects.fcgi, nunca create_objects.fcgi."
+            exit 1
+          fi
+
+      - name: Nenhum arquivo de dado real
+        run: |
+          if git ls-files | grep -Ei 'database/dados_|backup.*\.sql$|\.env$'; then
+            echo "::error::arquivo com possivel dado real ou credencial versionado."
+            exit 1
+          fi
+
+      - name: Nenhum CPF no codigo
+        run: |
+          # Ignora .example e testes com CPF sinteticamente invalido documentado
+          if git grep -InE '[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}' -- \
+             ':!*.example' ':!docs/*' ':!test/fixtures/*'; then
+            echo "::error::padrao de CPF encontrado fora de fixture. Verifique."
+            exit 1
+          fi
+
+  segredos:
+    name: Varredura de segredos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx eslint src/ test/
+
+  teste:
+    name: Testes
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: teste
+          MYSQL_DATABASE: sage_teste
+        ports: ['33306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ptteste"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Preparar banco de teste
+        run: npm run test:db:setup
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 33306
+          DB_USER: root
+          DB_PASSWORD: teste
+          DB_NAME: sage_teste
+
+      - name: Rodar testes
+        run: npm test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 33306
+          DB_USER: root
+          DB_PASSWORD: teste
+          DB_NAME: sage_teste
+          JWT_SECRET: chave_de_teste_com_mais_de_32_caracteres_aqui
+          CATRACA_USER_ID_OFFSET: '111000000'
+          NODE_ENV: test
+
+      - name: Teste de redacao de PII
+        run: npm run test:redacao
+        # Reprova o build se CPF, RG, e-mail ou JWT sintetico atravessar o logger

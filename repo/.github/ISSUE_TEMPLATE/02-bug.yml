@@ -1,0 +1,95 @@
+name: "🐛 Bug"
+description: "Comportamento errado em código existente"
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **Nunca cole log cru, print com pessoa real, IP interno ou trecho de `.env`.**
+
+        Use o código de erro (`CAT-CONN-03`) e o identificador de ocorrência (`7K2M-9XQ4`).
+        Se precisar de log, cole a versão redigida.
+
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Severidade
+      options:
+        - "SEV1 — catraca parada, ninguém entra"
+        - "SEV2 — funciona mas perde ou corrompe dado"
+        - "SEV3 — incômodo com contorno"
+        - "SEV4 — cosmético"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        > **Sobre SEV2:** é o mais traiçoeiro deste projeto. Ninguém reclama, porque a catraca
+        > gira normalmente. Só aparece quando alguém pede um relatório e faltam três semanas.
+        > Na dúvida entre SEV2 e SEV3, escolha SEV2.
+
+  - type: textarea
+    id: comportamento
+    attributes:
+      label: O que acontece
+      description: "Comportamento observado, objetivamente"
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que deveria acontecer
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduzir
+    attributes:
+      label: Como reproduzir
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: input
+    id: codigo-erro
+    attributes:
+      label: Código de erro / identificador de ocorrência
+      placeholder: "CAT-CONN-03 / 7K2M-9XQ4"
+
+  - type: textarea
+    id: causa
+    attributes:
+      label: Causa provável
+      description: "Se souber. Aponte arquivo e linha."
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto no dado
+      description: "Corrompe registro existente? Afeta folha de ponto ou presença? Precisa de correção retroativa?"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: aceite
+    attributes:
+      label: Critérios de aceite
+      options:
+        - label: "Teste de regressão que FALHA antes da correção e passa depois"
+          required: true
+        - label: "Causa raiz corrigida, não sintoma"
+          required: true
+        - label: "Registrado em `docs/ERROS.md` com o histórico"
+        - label: "Verificado se o dado já corrompido precisa de correção retroativa"
+
+  - type: input
+    id: origem
+    attributes:
+      label: Encontrado durante
+      placeholder: "#42 — ou 'relato da escola', ou 'revisão de código'"

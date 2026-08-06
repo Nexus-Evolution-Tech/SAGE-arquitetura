@@ -1,0 +1,113 @@
+name: "📦 Pacote de trabalho"
+description: "Entrega planejada, normalmente vinda do SAGE-ROADMAP.md"
+title: "[WP-XX] "
+labels: ["pacote-trabalho"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Antes de preencher:** leia `AGENTS.md` e o `docs/arquitetura/SAGE-ROADMAP.md`.
+
+        Esta issue deve ser autossuficiente — outro agente precisa conseguir executá-la
+        lendo só ela e os documentos referenciados.
+
+        ⚠️ **Nunca cole log cru, print com pessoa real, IP interno ou trecho de `.env`.**
+
+  - type: input
+    id: fase
+    attributes:
+      label: Fase
+      description: "Qual fase do roadmap"
+      placeholder: "Fase 1 — Confiar no dado"
+    validations:
+      required: true
+
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: "Por que este trabalho existe. Qual problema real ele resolve."
+      placeholder: |
+        A folha de ponto tem peso legal — erro afeta salário. Hoje o registro de
+        presença pode ser alterado sem deixar rastro, o que impede defender um
+        número questionado meses depois.
+    validations:
+      required: true
+
+  - type: textarea
+    id: documentos
+    attributes:
+      label: Documentos a ler antes
+      description: "Caminhos no repositório, com a seção relevante"
+      value: |
+        - `docs/arquitetura/SAGE-ROADMAP.md` — §
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: O que fazer
+      description: "Específico e verificável. Nomeie arquivos, tabelas, endpoints."
+    validations:
+      required: true
+
+  - type: textarea
+    id: fora-escopo
+    attributes:
+      label: O que NÃO fazer
+      description: "Tão importante quanto o escopo. Delimita o PR e evita refatoração oportunista."
+      value: |
+        - Não refatorar código adjacente
+        - Não renomear nada fora do escopo
+        - Não atualizar dependências
+        - Encontrou outro bug? Abra issue separada e siga com o escopo original
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de aceite
+      description: "Checklist verificável. PR que não atende não é revisado."
+      value: |
+        - [ ] Teste automatizado que prova
+        - [ ] Teste automatizado que prova
+        - [ ] Comportamento em falha:
+    validations:
+      required: true
+
+  - type: textarea
+    id: arquivos
+    attributes:
+      label: Arquivos provavelmente afetados
+      placeholder: |
+        - `src/services/...`
+        - `test/...`
+
+  - type: checkboxes
+    id: regras
+    attributes:
+      label: Regras invioláveis aplicáveis
+      description: "Marque as que incidem sobre este trabalho (AGENTS.md §4)"
+      options:
+        - label: "Nunca inventar dado — lacuna vira pendência para humano"
+        - label: "Nunca engolir erro — falha parcial é falha"
+        - label: "Nunca registrar dado pessoal em log"
+        - label: "Escrita na catraca idempotente (`create_or_update_objects`)"
+        - label: "Decisão de segurança falha fechada"
+        - label: "Escrita multi-passo usa transação"
+        - label: "Atualizador não toca em `dados/`"
+
+  - type: dropdown
+    id: dependencias
+    attributes:
+      label: Depende de acesso externo?
+      options:
+        - "Não — dá para fazer remotamente"
+        - "Precisa da catraca física"
+        - "Precisa de decisão da escola"
+        - "Precisa de visita presencial"
+    validations:
+      required: true
