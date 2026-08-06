@@ -22,9 +22,9 @@ A lista completa, arquivo a arquivo, está em `FASE1-ARQUIVOS.md`.
 
 | Repositório | Arquivos | Linhas | Concentração |
 |---|---:|---:|---|
-| `SAGE-API` | 208 | 23.090 | `src/` 11.628; `test/` 5.476; `scripts/` 1.969; `database/` 1.561; `installer/` 1.511 |
-| `SAGE` | 132 | 17.496 | `src/` 17.286, dos quais 10.416 JS/JSX e 5.909 CSS |
-| **Total** | **340** | **40.586** | — |
+| `SAGE-API` | 208 | 25.822 | `src/` 13.135; `test/` 6.196; `scripts/` 2.155; `database/` 1.687; `installer/` 1.626 |
+| `SAGE` | 132 | 19.409 | `src/` 19.189, dos quais 11.387 JS/JSX e 6.838 CSS |
+| **Total** | **340** | **45.231** | — |
 
 Detalhes do harness: backend com 49 suítes `*.test.js` e 5 arquivos de suporte/fake
 (54 JS no total); frontend com 7 suítes. O número real difere da referência histórica de
@@ -83,7 +83,7 @@ entrypoints operacionais ou de npm. Após retirar esses falsos positivos, ficam:
 ### Backend
 
 - `src/controllers/dataController.js` — arquivo vazio, sem importadores.
-- `src/middlewares/validacao.js` — 132 linhas, sem importadores.
+- `src/middlewares/validacao.js` — 153 linhas físicas, sem importadores.
 
 ### Frontend
 

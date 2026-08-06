@@ -1,6 +1,6 @@
 # Progresso da auditoria SAGE
 
-Atualizado em: 2026-08-05
+Atualizado em: 2026-08-06
 
 ## Concluído
 
@@ -10,16 +10,27 @@ Atualizado em: 2026-08-05
 - Confirmação das duas branches e worktrees limpas.
 - FASE 1: arquivos/LOC, grafo de imports, ciclos, candidatos mortos, rotas,
   schema/escritores e jobs.
-- Plano de fatias A–H ajustado para cobertura integral, ainda sem despachar auditores.
+- Plano de fatias A–H ajustado e apresentado antes de qualquer despacho.
+- Plano aprovado pelo arquiteto; inventário amostrado contra o código.
+- LOC recalculado por linhas físicas: 45.231 no total. A contagem anterior usava
+  `Measure-Object -Line`, que omitia linhas em branco; `validacao.js` foi corrigido de 132
+  linhas não vazias para 153 linhas físicas.
+- `SAGE-arquitetura` atualizado até `79d82b537e037645e44ce9854b82069b503b1af7` antes da Onda 1.
+- Onda 1 concluída: fatias A (dados), B (Control iD/sincronização) e C (HTTP/auth).
+- Calibração privada: A 1/1, B elegível 2/2 e C 5/5.
+- Verificação do orquestrador: 58 propostas elegíveis, uma rejeitada e sete consolidações,
+  resultando em 50 achados únicos (2 SEV1, 41 SEV2, 7 SEV3, 0 SEV4).
+- Primeira passagem B arquivada integralmente por falhar na calibração. Segunda passagem B
+  descartada sem uso por contaminação acidental do gabarito. Terceira passagem independente
+  aprovada e usada.
 
 ## Em andamento
 
-- Ponto de controle humano: apresentar o plano de fatias antes do despacho.
+- Empacotamento e versionamento do checkpoint da Onda 1 em `SAGE-arquitetura/auditoria`.
 
 ## Próximo passo
 
-- Após o ponto de controle, preparar prompts sem revelar a calibração e despachar a onda
-  A/B/C.
+- Após publicar o checkpoint, aguardar o próximo despacho para a Onda 2.
 
 ## Decisões e limitações
 
