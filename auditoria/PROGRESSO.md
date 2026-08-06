@@ -2,6 +2,16 @@
 
 Atualizado em: 2026-08-06
 
+## Onda 2 — concluída
+
+- Fatia D aprovada na primeira execução: 3/3 fatos privados de calibração redescobertos.
+- Fatias E e F concluídas e verificadas.
+- 41 propostas brutas; 32 achados únicos acrescentados após duplicatas e reduções.
+- Acumulado: 82 achados únicos — 3 SEV1, 47 SEV2, 31 SEV3 e 1 SEV4.
+- Dependabot reconciliado: 80 transitivas CRA/build/teste, 17 no bundle e uma unidade
+  histórica indeterminada; 70/97 alertas identificáveis ainda reproduzem na lock auditada.
+- Próxima etapa: Onda 3 (G/H), seguida da verificação transversal e do `INVENTARIO.md`.
+
 ## Concluído
 
 - Leitura, na ordem solicitada, de `ESTADO-VERIFICADO.md`, `DOMINIO-E-LACUNAS.md`,
@@ -26,12 +36,11 @@ Atualizado em: 2026-08-06
 
 ## Em andamento
 
-- Nenhuma fatia em execução; checkpoint da Onda 1 publicado em
-  `SAGE-arquitetura/auditoria`.
+- Preparação da Onda 3: fatias G (harness/simulador) e H (Windows/empacotamento).
 
 ## Próximo passo
 
-- Após publicar o checkpoint, aguardar o próximo despacho para a Onda 2.
+- Executar/verificar G e H, publicar o checkpoint e produzir `INVENTARIO.md`.
 
 ## Decisões e limitações
 
