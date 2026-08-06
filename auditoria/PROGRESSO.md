@@ -22,6 +22,13 @@ Atualizado em: 2026-08-06
 - Acumulado: 99 achados únicos — 6 SEV1, 50 SEV2, 42 SEV3 e 1 SEV4.
 - Próxima etapa: consolidação final em `INVENTARIO.md`.
 
+## Fase 4 — concluída
+
+- `INVENTARIO.md` produzido com 99 linhas canônicas na tabela mestra.
+- Totais finais: 6 SEV1, 50 SEV2, 42 SEV3 e 1 SEV4.
+- Incluídas filas remoto/ambiente, perguntas presenciais, densidade por módulo, ordem com
+  dependências, calibração, descartes e contenção mínima pré-visita versus saneamento profundo.
+
 ## Concluído
 
 - Leitura, na ordem solicitada, de `ESTADO-VERIFICADO.md`, `DOMINIO-E-LACUNAS.md`,
@@ -46,11 +53,11 @@ Atualizado em: 2026-08-06
 
 ## Em andamento
 
-- Fase 4: tabela mestra, separação remoto/ambiente, densidade e ordem de correção.
+- Nenhuma fatia em execução; consolidação pronta para revisão do arquiteto.
 
 ## Próximo passo
 
-- Publicar o checkpoint da Onda 3 e concluir/publicar `INVENTARIO.md`.
+- Publicar o `INVENTARIO.md` na `main` do SAGE-arquitetura e entregar o checkpoint final.
 
 ## Decisões e limitações
 
