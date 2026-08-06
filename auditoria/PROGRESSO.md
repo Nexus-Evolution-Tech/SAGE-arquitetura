@@ -12,6 +12,16 @@ Atualizado em: 2026-08-06
   histórica indeterminada; 70/97 alertas identificáveis ainda reproduzem na lock auditada.
 - Próxima etapa: Onda 3 (G/H), seguida da verificação transversal e do `INVENTARIO.md`.
 
+## Onda 3 — concluída
+
+- Fatia G: 49 suítes backend, 232 casos materializados e 12 casos vacuamente verdes sem
+  MySQL; cinco achados únicos acrescentados.
+- Fatia H: instalador não apto; três caminhos SEV1 de indisponibilidade/rollback e nove
+  outros achados únicos.
+- 20 propostas brutas; 17 achados únicos acrescentados após consolidação.
+- Acumulado: 99 achados únicos — 6 SEV1, 50 SEV2, 42 SEV3 e 1 SEV4.
+- Próxima etapa: consolidação final em `INVENTARIO.md`.
+
 ## Concluído
 
 - Leitura, na ordem solicitada, de `ESTADO-VERIFICADO.md`, `DOMINIO-E-LACUNAS.md`,
@@ -36,11 +46,11 @@ Atualizado em: 2026-08-06
 
 ## Em andamento
 
-- Preparação da Onda 3: fatias G (harness/simulador) e H (Windows/empacotamento).
+- Fase 4: tabela mestra, separação remoto/ambiente, densidade e ordem de correção.
 
 ## Próximo passo
 
-- Executar/verificar G e H, publicar o checkpoint e produzir `INVENTARIO.md`.
+- Publicar o checkpoint da Onda 3 e concluir/publicar `INVENTARIO.md`.
 
 ## Decisões e limitações
 
