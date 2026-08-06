@@ -50,6 +50,8 @@ escrita olhando para o sistema rodando.
 | **V8** | **`zerar-tudo` apaga a escola inteira sem trava** | `deviceRoutes.js:23` → `deviceController.js:545`: doze `DELETE` sem `WHERE`, sem transação, sem backup, sem confirmação, sem autoria. Protegido só por `autenticar` | **Perda total de dado a um clique. A mais grave da lista** |
 | V9 | Não existe usuário do sistema | Login é `UnidadeEscolar.login`+`senha` — uma credencial para a escola inteira. `jwt.js` aceita payload sem estrutura; `autenticar.js` só faz `req.user = payload` | Nada "registra em nome de quem fez"; V8 fica ao alcance de qualquer um que saiba a senha |
 | V10 | Sem rotação de log | `src/config/logger.js` não tem `maxsize` nem `maxFiles` | Disco enche → MySQL para de escrever → registro perdido em silêncio |
+| V11 | **Dez rotas de monitoramento sem autenticação nenhuma** | `src/routes/monitoringRoutes.js` não importa `autenticar`. Expõe `/monitoring/state`, `/monitoring/users`, e duas que **mutam**: limpar cache e sync-db | Estado do sistema e usuários conectados legíveis sem credencial; operações de mutação disparáveis por qualquer um |
+| V12 | Superfície de rota duplicada | `loadRoutes.js:16` monta todo `*Routes.js` em `/`, e `app.js:99` monta `monitoringRoutes` **de novo** em `/monitoring`. Resultado: `/monitoring/state` e `/monitoring/monitoring/state` | Duas superfícies para a mesma coisa; correção em uma não cobre a outra |
 
 **V8 combinado com V9 é o cenário mais caro deste repositório:** uma senha compartilhada e um
 endpoint que apaga doze tabelas. Não depende de visita, nem de decisão da escola, nem de
