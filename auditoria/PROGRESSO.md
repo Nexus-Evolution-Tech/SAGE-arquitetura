@@ -26,7 +26,8 @@ Atualizado em: 2026-08-06
 
 ## Em andamento
 
-- Empacotamento e versionamento do checkpoint da Onda 1 em `SAGE-arquitetura/auditoria`.
+- Nenhuma fatia em execução; checkpoint da Onda 1 publicado em
+  `SAGE-arquitetura/auditoria`.
 
 ## Próximo passo
 
