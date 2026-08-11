@@ -252,21 +252,21 @@ com respingo nos templates XML.
 - [ ] **Mensagens acionáveis** `[H-012]`: código de erro, etapa, ação. Hoje diz "Consulte os
       logs locais", sem caminho
 
-**Fronteira de confiança e transporte** `[+2A-E02]` — **decisão de arquitetura pendente, minha,
-não do implementador.** Hoje o proxy e o atalho do Windows usam `http://` puro; não há TLS em
-lugar nenhum. Token e PII trafegam em claro na rede da escola.
+**Fronteira de confiança e transporte** `[+2A-E02]` — **decidido em ADR-0014. Leia antes de
+codar.** O teto de implantação é duas máquinas na mesma LAN, e a decisão segue disso:
 
-Não é patch: sem DNS público não há Let's Encrypt, então é certificado autoassinado ou CA local
-que precisa ser confiada em cada máquina da secretaria — num PC que você visita uma vez.
+- **T1, uma máquina — o padrão.** API escuta só em `127.0.0.1`. **Sem TLS**, porque sem fio não
+  há escuta, e um certificado a mais é um certificado a mais para expirar sozinho no campo
+- **T2, duas máquinas — modo explícito.** TLS obrigatório, com CA local gerada pelo instalador,
+  validade de **10 anos** por decisão consciente (ver ADR-0014 sobre expiração remota)
 
-As duas saídas honestas, e eu preciso escolher **antes** da visita:
-1. **Confinar a loopback** — o SAGE só atende `127.0.0.1`, a secretaria usa a máquina local.
-   Barato e verdadeiro, mas mata acesso de outra máquina da escola.
-2. **TLS com CA local**, provisionada pelo instalador e instalada no store da máquina.
-   Preserva o acesso em rede, e custa uma etapa a mais no instalador e renovação de certificado.
-
-- [ ] ADR escolhendo uma das duas, escrito antes de qualquer código
-- [ ] `http://` deixa de aparecer em `nginx.conf` e no atalho do `SAGE.iss`
+- [ ] API escuta em loopback por padrão; abrir para a LAN é configuração explícita
+- [ ] Habilitar T2 gera CA + folha por CSPRNG, com a mesma ACL dos demais segredos
+- [ ] Instalador produz `confiar-sage.cer` e instrução para a segunda máquina
+- [ ] Em T2, `http://` responde redirecionamento; nada operacional trafega em claro
+- [ ] `nginx.conf` e o atalho do `SAGE.iss` deixam de fixar `http://`
+- [ ] Readiness expõe a data de expiração do certificado
+- [ ] Teste: subir em T1 **não** gera certificado nenhum
 
 **MySQL:** implementado conforme **ADR-0013**, que supersede o ADR-0001. Embarcado, serviço do
 Windows, porta 3307. **Não refaça isso** — `[H-011]` está resolvido por decisão, não por código.
@@ -284,6 +284,8 @@ e `redistribution: legal-review-required` no `artifacts.json`.
 - [ ] Erro com contexto, redigido, com código estável e identificador de ocorrência
 - [ ] Indicador que uma secretária entende: "não estou registrando"
 - [ ] Support bundle determinístico com manifesto
+- [ ] **Aviso de expiração de certificado com 180 dias de antecedência** `[ADR-0014]`. Só existe
+      em T2. É o que impede a segunda máquina de cair sozinha sem ninguém no local
 
 Telemetria nunca é requisito (ADR-0012): sem internet, a catraca ainda gira.
 
@@ -309,6 +311,11 @@ específica** sob demanda, e quantos grupos e faixas de horário ela comporta.
 - **Quantos usuários da catraca começam com `11`, e quais são do SAGE?** É o que separa a
   correção segura do `DELETE /dispositivos` de um apagamento acidental. Contar antes, nunca
   deduzir por prefixo.
+
+**Decidir em campo qual topologia do ADR-0014 vale** — e é a única coisa da visita que muda o
+instalador: a secretaria vai usar o SAGE **da própria máquina onde ele roda** (T1) ou de **outra
+máquina** (T2)? Se for T2, confiar a CA na segunda máquina é passo da visita, com o operador
+junto. É o único passo do sistema que pode precisar de alguém competente do outro lado depois.
 
 **Somente leitura. Nenhuma mutação de dado na visita.**
 
