@@ -25,6 +25,35 @@ e os três estão corrigidos aqui:
 
 ---
 
+## 0-bis. A segunda auditoria (enxertada em 2026-08-11)
+
+Um segundo agente auditou **o mesmo snapshot** (`wip/recuperacao-local-pre-auditoria`, backend
+`9e3eaba`, frontend `06c1ed4`) de forma independente, e produziu 92 achados em 6 fatias (A–F).
+Os arquivos estão em `SAGE-WS/auditoria/`, fora deste repositório. **Ele não alterou uma linha
+de código** — os dois clones estão limpos.
+
+**As duas auditorias concordam no diagnóstico central**, e isso é o resultado mais importante:
+dois auditores independentes chegaram a "não instalar hoje" pelos mesmos caminhos destrutivos,
+e o segundo reencontrou sozinho o achado D1 (o "Liberar acesso" que só pinta a tela).
+
+**Onde ela me superou** — enxertado acima, marcado `[+2A-*]`: `DELETE /dispositivos` (segunda
+rota de destruição global, **SEV1**), fallbacks destrutivos no frontend, dado inventado em
+`Adicionar.js`, identidade real no bundle, HTTP puro sem TLS, contrato de Socket.IO quebrado,
+saída sobrescrevendo chegada, fuso ambíguo, dedup por nome, e o grupo `1` promovido de pergunta
+a achado.
+
+**Onde esta continua sendo a fonte:** ela cobriu 6 fatias; esta cobriu 8. Não há equivalente
+para **A-008** (`DELIMITER $` quebrando a instalação limpa — o `[BLOQUEIA TUDO]`), **H-001**
+(versão congelada em `1.0.0`) nem **H-002** (contrato de faixa de schema, que inviabiliza o
+rollback justamente na atualização que muda schema). A fatia G (harness de teste), base do
+R-LAB, também não existe lá.
+
+**Ressalva de leitura:** ela auditou o snapshot **anterior** aos PRs #34–#40 do Codex. Parte
+dos achados dela em transação e falha parcial pode já estar corrigida. Confira antes de abrir
+issue duplicada.
+
+---
+
 ## 1. Regras que valem em todo o plano
 
 **Do AGENTS.md e dos ADRs, sem exceção:** nunca invente dado · nunca engula erro · nunca dado
@@ -94,18 +123,51 @@ A família mais perigosa: falha parcial reportada como sucesso, e a pendência s
 - [ ] Lote da outbox não é monopolizado por dispositivo offline
 - [ ] Um teste de regressão por item
 
-### R0-05 — Cercar a destruição `[A-004, B-011, B-012, D-004, D-005]`
+### R0-05 — Cercar a destruição `[A-004, B-011, B-012, D-004, D-005, +2A-M002, +2A-E16, +2A-E17]`
 - [ ] `comecar-do-zero` exige confirmação por valor digitado, backup **restaurado-prova**, transação e registro de autoria
 - [ ] Dump reprovado **não** conta como recente e **não** deixa status verde
 - [ ] Backup da catraca recusa conteúdo parcial; existe caminho de restore
 - [ ] Teste: falha no meio não apaga nada
 
+**Acrescentado pela segunda auditoria — segunda rota de destruição global `[SEV1]`:**
+
+`DELETE /dispositivos` (`deviceRoutes.js:30`) chama `limparUsuariosPorPrefixo11`
+(`controlId-utils.js:308`), que varre **todos** os dispositivos com `sync_enabled`, seleciona
+IDs por `String(id).startsWith("11")` e emite um `destroy_objects` por usuário.
+
+**Verificado pelo arquiteto, e é pior que o relatado:** o `USER_ID_OFFSET` é `110000000` /
+`111000000` — **todo usuário provisionado pelo SAGE começa com `11`**. O filtro não é um
+recorte, é um "todos". Um `try/catch` único envolve o laço inteiro e só registra em log:
+falha no meio deixa catracas em estado misto e não propaga nada.
+
+- [ ] Rota genérica `DELETE /dispositivos` **removida**. Se a operação precisa existir, exige
+      escopo de um dispositivo, seleção por identidade mapeada, prévia contável, backup
+      restaurado-prova e confirmação por valor digitado
+- [ ] Erro por dispositivo é propagado; parcial **nunca** vira sucesso
+- [ ] Teste: rota recusa executar sem escopo explícito
+
+**Fallbacks destrutivos no frontend:**
+- [ ] `Aulas.js:189-207` — falha de *detach* **não** pode escalar para `deletarAula(id)`.
+      Falha transitória apagando a entidade é ampliação de escopo destrutivo
+- [ ] `HorarioFixoForm.jsx:24-76` — GET falho substitui o estado por linhas vazias e o salvar
+      envia `horarios: []`. Leitura que falha **não** habilita escrita
+- [ ] Teste para os dois: primeira requisição rejeitada não amplia a operação
+
 ### R0-06 — Rotação de log e crescimento `[V10, D-*]`
 - [ ] `maxsize` e `maxFiles`; teto total em disco documentado
 - [ ] Disco cheio produz erro visível, não falha silenciosa
 
-### R0-07 — `catch` vazio e `console.log` `[V4, V5]`
+### R0-07 — `catch` vazio, `console.log` e dado inventado `[V4, V5, +2A-E21, +2A-novo]`
 - [ ] Nenhum dos dois em `src/`, verificável por lint, com CI reprovando
+
+**Acrescentado — violações literais dos invariantes:**
+- [ ] `Adicionar.js:94-128` — `if (!payload.foto) payload.foto = "foto_exemplo.png"`. Ausência
+      de foto vira nome de arquivo fictício **persistido como dado da pessoa**. É o invariante
+      "nunca invente dado" quebrado numa linha
+- [ ] `controlId-utils.js:236` — `catch (err)` cujo corpo referencia `error`. O caminho de erro
+      lança `ReferenceError` e destrói a causa original. **Achado do arquiteto; nenhuma das
+      duas auditorias pegou.** Procure o mesmo padrão no resto do arquivo
+- [ ] Lint proíbe referência a identificador não declarado em bloco `catch`
 
 **Não faça na R0:** offset, piso de log e cursor. São bloqueados no campo — ver R-CAMPO.
 
@@ -131,11 +193,29 @@ Acrescente a ela, da auditoria:
 - [ ] Erro global para de devolver `err.message` em produção `[C-016]`
 - [ ] Loader que engole erro para de deixar `/health` verde com rotas parciais `[C-019]`
 
+- [ ] Caminho de foto vindo do banco é **contido** antes de `unlinkSync` — hoje
+      `peopleService.js:189-196` faz `path.join(baseUploads, pessoa[0].foto)` sem teste de
+      contenção, e a edição aceita persistir referência manipulada `[+2A-C10]`
+
 **Frontend, na mesma release** `[E-003..E-007]` — hoje **nenhuma das 21 telas trata 403**:
 - [ ] 403 **preserva a sessão**; só 401 desloga
 - [ ] Cache e WebSocket limpam por identidade ao trocar de usuário
 - [ ] Ações de administrador ficam ocultas para secretaria
 - [ ] Primeiro login força troca de senha
+- [ ] `Settings.js:33-48` — `DADOS_UNIDADE_INICIAL` traz nome, identificadores, endereço e
+      contato de uma unidade real **dentro do bundle**, usados como estado inicial quando
+      `/unidade` falha. Fallback passa a ser neutro; identidade vem do onboarding `[+2A-E20]`
+
+**Contrato de realtime — a release que já mexe em WebSocket é a que conserta** `[+2A-E05/E07/E08]`.
+A segunda auditoria mostrou que o problema não é só de autenticação: **o realtime pode
+simplesmente não estar funcionando.**
+- [ ] Cliente emite `join`; servidor só escuta `subscribe:acessos|dispositivos|sync|stats`
+      (`useWebSocket.js:72-99` × `wsServer.js:59-75`). Protocolo único, versionado
+- [ ] `io(SOCKET_URL)` passa `/backend` como namespace enquanto o nginx espera
+      `/backend/socket.io/` — separar origem, namespace e `path`
+- [ ] `reconnectionAttempts: 5` e depois desiste em silêncio. Reconexão contínua com backoff
+- [ ] **Teste de contrato cliente↔servidor**, atrás do proxy real. Sem isso o conserto não
+      tem como ser provado
 
 ---
 
@@ -172,6 +252,22 @@ com respingo nos templates XML.
 - [ ] **Mensagens acionáveis** `[H-012]`: código de erro, etapa, ação. Hoje diz "Consulte os
       logs locais", sem caminho
 
+**Fronteira de confiança e transporte** `[+2A-E02]` — **decisão de arquitetura pendente, minha,
+não do implementador.** Hoje o proxy e o atalho do Windows usam `http://` puro; não há TLS em
+lugar nenhum. Token e PII trafegam em claro na rede da escola.
+
+Não é patch: sem DNS público não há Let's Encrypt, então é certificado autoassinado ou CA local
+que precisa ser confiada em cada máquina da secretaria — num PC que você visita uma vez.
+
+As duas saídas honestas, e eu preciso escolher **antes** da visita:
+1. **Confinar a loopback** — o SAGE só atende `127.0.0.1`, a secretaria usa a máquina local.
+   Barato e verdadeiro, mas mata acesso de outra máquina da escola.
+2. **TLS com CA local**, provisionada pelo instalador e instalada no store da máquina.
+   Preserva o acesso em rede, e custa uma etapa a mais no instalador e renovação de certificado.
+
+- [ ] ADR escolhendo uma das duas, escrito antes de qualquer código
+- [ ] `http://` deixa de aparecer em `nginx.conf` e no atalho do `SAGE.iss`
+
 **MySQL:** implementado conforme **ADR-0013**, que supersede o ADR-0001. Embarcado, serviço do
 Windows, porta 3307. **Não refaça isso** — `[H-011]` está resolvido por decisão, não por código.
 Fica aberto, para o dono do produto e não para o implementador: `signatureVerification: pending`
@@ -203,6 +299,17 @@ Acrescente: Wireshark durante uso do software oficial da Control iD, tempo do My
 conexão naquele HD, tempo real do `destroy_objects`, se a catraca aceita liberar **uma passagem
 específica** sob demanda, e quantos grupos e faixas de horário ela comporta.
 
+**Acrescentado pela segunda auditoria — duas perguntas que viraram bloqueantes:**
+
+- **O grupo `1` significa mesmo liberação total?** `controlId-utils.js:224` grava todo mundo em
+  `group_id: 1`, com o comentário `// grupo default - libera todo mundo`. Se for verdade,
+  **hoje ninguém tem restrição física nenhuma** — o SAGE nunca aplicou política na catraca, e
+  toda a R8 parte de um estado em que a autorização real é "todos liberados". Levantar quais
+  `access_rules` e portais referenciam o grupo `1`, e quais outros grupos existem.
+- **Quantos usuários da catraca começam com `11`, e quais são do SAGE?** É o que separa a
+  correção segura do `DELETE /dispositivos` de um apagamento acidental. Contar antes, nunca
+  deduzir por prefixo.
+
 **Somente leitura. Nenhuma mutação de dado na visita.**
 
 ---
@@ -214,6 +321,23 @@ Com os dados de campo em mãos, na ordem: **núcleo de sync idempotente por disp
 A-015, A-017, A-018, A-020, A-021) · **expectativa por slot** e o resto do `ROADMAP-RELEASES.md`
 R4–R9 · **operação** (scheduler, shutdown, Redis, readiness) · **toolchain** (CRA 5, os três
 `lodash` do bundle; os 80 alertas build-only não são urgentes).
+
+**Acrescentado pela segunda auditoria, tudo dentro da R4 (fundação do tempo):**
+
+- **A saída sobrescreve a chegada** `[+2A-A04]`. `presenceService.js:148-181` mantém no máximo
+  uma linha por pessoa e data, e todo acesso posterior faz `UPDATE ... horario_chegada`.
+  **Verificado.** Isto não é só desenho ruim: **os dados que já estão no banco estão corrompidos**
+  para quem passou duas vezes no mesmo dia, sem trilha do valor anterior. Some ao levantamento
+  de campo estimar quantas linhas de `Presenca` foram sobrescritas — é o que decide se dá para
+  reconstruir a partir de `Acesso` ou se aquele histórico é perda declarada.
+- **Fuso ambíguo na mesma coluna** `[+2A-A09]`. O pool aplica `-03:00` e os caminhos da catraca
+  gravam `toISOString()` sem marcador. Eventos equivalentes diferem três horas conforme a origem
+  e **atravessam a meia-noite**, mudando dia de presença, atraso e ordenação. Converter só nas
+  bordas, e migrar o existente só com origem conhecida.
+- **Importação da catraca deduplica por nome** `[+2A-B24]`. `catracaImportService.js:76-102`
+  ignora `u.id` e casa por `(unidade_id, nome)`. Homônimos são fundidos e a identidade externa
+  se perde. Staging, chave externa por dispositivo, subtipo transacional antes de publicar.
+- **Política do grupo `1`** `[+2A-B11]` — pré-requisito documentado da R8, respondido no campo.
 
 ---
 
@@ -230,3 +354,21 @@ R4–R9 · **operação** (scheduler, shutdown, Redis, readiness) · **toolchain
 - **Discordei da reescrita do instalador sem ter lido com a mesma profundidade** as outras
   quatro recomendações de reescrita (`app.js`, `scheduledJobs.js`, `peopleService.js`,
   `accessService.js`). Se densidade engana num lugar, pode enganar nos outros.
+
+**Acrescentado depois do enxerto da segunda auditoria:**
+
+- **A concordância entre as duas auditorias vale menos do que parece se elas não forem
+  independentes de verdade.** Não sei sob que instrução o segundo agente rodou. Se ele teve
+  o handoff desta auditoria na mão, a convergência é eco, não confirmação.
+- **Enxertei a partir do inventário consolidado dela, não das 6 fatias inteiras.** Verifiquei
+  na fonte os quatro que mudam o plano (`DELETE /dispositivos`, grupo `1`, A-04, `criarGrupo`);
+  os demais entraram pela evidência que ela apresentou. Pode haver falso positivo aí.
+- **Duas auditorias estáticas concordando ainda são duas auditorias estáticas.** Nenhuma das
+  duas executou o sistema — a segunda registra que Node/npm não estavam disponíveis. O R-LAB
+  não fica menos necessário por causa da concordância; fica mais, porque agora há mais achado
+  não executado para confirmar.
+- **O enxerto reabre um plano que já está sendo executado.** Os PRs #34–#40 estão empilhados
+  sobre `wip/recuperacao-local-pre-auditoria`. O que entrou na R0-05 e na R0-07 muda pacotes
+  que o Codex já entregou em draft — eles vão precisar de complemento, não de rebase.
+- **A decisão de TLS está em aberto e é minha.** Enquanto eu não escolher entre loopback e CA
+  local, a R2 está subespecificada e o implementador não pode fechá-la.
