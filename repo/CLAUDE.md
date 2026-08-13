@@ -10,7 +10,7 @@ arquivo existe apenas porque Claude Code procura por `CLAUDE.md` e Codex procura
 
 Se você só puder ler dez linhas:
 
-1. Leia `docs/arquitetura/SAGE-ROADMAP.md` — ele manda nos outros documentos
+1. `git -C C:\SAGE-WS\SAGE-arquitetura pull` e leia `PLANO-POS-AUDITORIA.md` — é o que manda
 2. Faça **exatamente** o que a issue pede, nada além
 3. Achou outro bug? Abra issue separada, não corrija junto
 4. Nunca invente dado — lacuna vira pendência para humano resolver

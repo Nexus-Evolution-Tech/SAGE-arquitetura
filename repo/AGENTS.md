@@ -7,6 +7,50 @@
 
 ---
 
+## 0. Coordenação entre máquinas — leia antes de qualquer outra coisa
+
+O trabalho acontece em **duas máquinas que não enxergam o disco uma da outra**:
+
+| Quem | Onde | Faz |
+|---|---|---|
+| **Arquiteto** (Claude) | macOS | Plano, spec, ADR, revisão de PR |
+| **Implementador** (Codex) | Windows, `C:\SAGE-WS` | Código, teste, PR |
+
+**O GitHub é o único canal entre as duas. Não existe outro.** Se você mudou algo e não
+empurrou, para a outra máquina aquilo **não existe**.
+
+### As quatro regras
+
+1. **Antes de começar qualquer pacote, atualize o plano:**
+   ```
+   git -C C:\SAGE-WS\SAGE-arquitetura pull
+   ```
+   O plano muda — recebeu enxerto de uma segunda auditoria e um ADR novo depois que a
+   implementação já tinha começado. Trabalhar sobre versão velha é retrabalho garantido.
+
+2. **Nada que só existe no seu disco conta como feito.** Commit e push ao fim de cada
+   sessão de trabalho, mesmo que o pacote esteja pela metade — branch `wip/` serve para isso.
+   **Isto já custou caro:** 23 arquivos modificados e 3 arquivos novos da R0-07, incluindo a
+   barreira de CI, ficaram órfãos numa máquina que caiu da rede. Foram recuperados por sorte,
+   não por processo.
+
+3. **Reporte estado verificado, nunca estado presumido.** "Os jobs estão executando" quando
+   eles já terminaram vermelhos é a mesma família de defeito que a R0-04 conserta no produto:
+   falha apresentada como sucesso. Cole a saída real do CI; não resuma o que você espera que
+   tenha acontecido.
+
+4. **Repositório certo.** O código vive em `C:\SAGE-WS\SAGE-API`. Existe um clone velho em
+   `C:\Users\Admin\Documents\Projects\SAGE-API` que nem conhece as branches atuais — **não é
+   aquele.** Confira com `git log --oneline -1` antes de escrever.
+
+### Quem decide o quê
+
+O arquiteto não escreve código de produção; o implementador não decide arquitetura. Se a
+issue estiver ambígua **ou** se o plano contradisser o que você está vendo no código,
+**pare e pergunte** — não escolha por conta própria e não "conserte" o plano.
+
+---
+
 ## 1. O que é o SAGE
 
 Plataforma de presença e autorização escolar da ETEC de Taboão da Serra. Registra entrada e
@@ -28,6 +72,7 @@ Ordem de leitura, conforme o que você vai fazer:
 
 | Documento | Quando é obrigatório |
 |---|---|
+| `C:\SAGE-WS\SAGE-arquitetura\PLANO-POS-AUDITORIA.md` | **Sempre, e atualizado (`git pull`).** É o que manda hoje |
 | `docs/produto/roadmap.md` | **Sempre.** Manda nos outros documentos |
 | `docs/arquitetura/sincronizacao.md` | Qualquer coisa que fale com a catraca |
 | `docs/arquitetura/presenca.md` | Presença, pareamento, fechamento de período |
