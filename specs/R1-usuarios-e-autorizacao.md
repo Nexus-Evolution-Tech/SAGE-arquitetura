@@ -122,7 +122,7 @@ O ponto desta release **não é uma tabela; é impedir que o V3 volte a acontece
 
 ### 4.1 Declaração obrigatória por rota
 
-Toda rota declara explicitamente o papel exigido. **Rota sem declaração é negada** — não
+Toda rota declara explicitamente o acesso exigido. **Rota sem declaração é negada** — não
 liberada. Falha fechada, conforme AGENTS.md §4.6.
 
 ```js
@@ -134,11 +134,29 @@ router.get('/health', publica(), statusController.health);
 
 `publica()` é declaração explícita, não ausência. **Ausência sempre nega.**
 
+**A declaração diz por que aquele nível de acesso é o certo, não só qual é.** São quatro
+tipos, e não existe um quinto (§4.4):
+
+| Tipo | Significa |
+|---|---|
+| `exige(papel)` | Requer usuário SAGE autenticado com o papel |
+| `preAutenticacao(motivo)` | Não pode exigir credencial porque a credencial é o que está sendo obtida ou criada |
+| `autenticacaoPropria(nome)` | Máquina-a-máquina, com esquema de autenticação próprio não-JWT |
+| `publica()` | Decidimos que qualquer um pode. **Lista fechada** — §4.4 |
+
 ### 4.2 Barreira automática no CI
 
-Um teste varre todas as rotas registradas e reprova se alguma não declarar papel ou
-`publica()`. Isso é o que impede a regressão daqui a seis meses, quando ninguém lembrar
-desta especificação.
+Um teste varre **toda a árvore Express efetivamente registrada** — subrouters carregados por
+`loadRoutes` e rotas montadas direto em `app.js` — e reprova se alguma rota não trouxer uma
+das quatro declarações. Isso é o que impede a regressão daqui a seis meses, quando ninguém
+lembrar desta especificação.
+
+**A barreira não tem recorte.** Excluir da varredura justamente as rotas que não couberam na
+tabela institucionaliza o buraco que a barreira existe para achar.
+
+Para `autenticacaoPropria(nome)`, a barreira exige mais: **o middleware nomeado tem que estar
+de fato na cadeia registrada daquela rota.** Sem essa checagem a declaração vira etiqueta, e
+alguém remove o middleware um dia sem a barreira notar.
 
 ### 4.3 Classificação das rotas
 
@@ -151,6 +169,9 @@ O implementador não escolhe por intuição. A regra:
 | Leitura de dado de negócio | `SECRETARIA` | relatórios, listagens, histórico |
 | Infraestrutura sem dado | `publica()` | `GET /health`, `GET /ready` |
 | **Monitoramento `[V11]`** | **`ADMINISTRADOR`** | as dez rotas de `monitoringRoutes.js` |
+| **Bootstrap, login e recuperação** | **`preAutenticacao()`** | `GET /setup/status`, `POST /setup/initialize`, `POST /escolas/login/:id`, `POST /escolas/recuperar-acesso` |
+| **Callback da catraca** | **`autenticacaoPropria()`** | `POST /api/notifications/dao` |
+| **Caminho que tem que funcionar quebrado** | **`publica()`** | `GET /status`, `GET /diagnostico` |
 
 **Sobre o monitoramento:** hoje `/monitoring/state`, `/monitoring/users` e `POST /monitoring/cache/clear`, a única que muta,
 não têm autenticação nenhuma. Todas passam a exigir administrador.
@@ -160,7 +181,56 @@ e `app.js:99` monta `monitoringRoutes` **de novo** em `/monitoring`, criando
 `/monitoring/state` e `/monitoring/monitoring/state`. **Elimine a montagem duplicada** —
 senão a proteção precisa ser aplicada duas vezes e alguém vai esquecer uma.
 
-Se surgir rota que não cabe em nenhuma categoria: **issue de decisão, e pare.**
+**`GET /diagnostico-acessos/:id` (`app.js:104`) não se classifica — se apaga.** É a mesma
+superfície duplicada do `[V12]`: expõe o mesmo `dispositivosController.diagnosticoAcessos`
+que `deviceRoutes.js:16` já expõe em `/dispositivos/:id/diagnostico-acessos` **com**
+`autenticar`. Mesmo controller, duas portas, e a segunda sem cerca. Pior: a cerca que ela tem
+falha **aberta** — `if (!isDev && key !== undefined && req.query.key !== key)`; sem
+`DIAGNOSTICO_KEY` definida, `key === undefined`, a condição inteira é falsa e a rota passa em
+produção. É o anti-padrão literal do AGENTS.md §4.6 e o achado `[C-008]`. Apague a montagem de
+`app.js`; a rota sobrevivente recebe `exige('ADMINISTRADOR')`.
+
+Se surgir rota que não cabe em nenhuma das categorias: **issue de decisão, e pare.**
+
+### 4.4 Os três tipos que não são `exige()`
+
+**`preAutenticacao(motivo)`** — bootstrap, login e recuperação.
+
+Não é "qualquer um pode": é "não pode exigir credencial porque a credencial é o que está
+sendo obtida ou criada". Colapsar isso em `publica()` apaga a diferença, e é justamente o
+atalho que faz `publica()` virar lixeira. Guardas obrigatórias, cada uma com teste:
+
+- Rate limit por IP `[C-015]`
+- Resposta indistinguível entre usuário inexistente e senha errada `[C-015]`
+- `POST /setup/initialize` só responde enquanto o sistema **não** estiver configurado. A
+  guarda já existe e é boa — loopback-only, `GET_LOCK`, e `COUNT(*) != 0 → 409`. Ela passa a
+  ter **teste de regressão nomeado**, porque é a única coisa entre a rede da escola e a tomada
+  do sistema por quem chegar primeiro
+
+**`autenticacaoPropria(nome)`** — `POST /api/notifications/dao`.
+
+É máquina-a-máquina, não existe usuário SAGE do outro lado. `exige()` quebraria o callback e
+`publica()` mentiria sobre o que protege a rota. A declaração **nomeia** o middleware que é a
+autenticação dela — `monitorCallbackAuth` — e a barreira confere que ele está na cadeia.
+
+⚠️ **`monitorCallbackAuth` hoje falha aberto.** Sem `MONITOR_CALLBACK_TOKEN` e sem
+`MONITOR_IP_WHITELIST` no `.env`, ele chama `next()` sem verificar nada; e a whitelist confia
+em `x-forwarded-for`, que o cliente escolhe. **Preserve o middleware, mas não declare que a
+rota está autenticada.** O conserto é `[C-006]` e é da R1-05 — abra a issue agora e
+referencie-a na declaração, para que a dívida fique visível no código e não só no plano.
+
+**`publica()` é lista fechada.** Exatamente quatro rotas: `GET /health`, `GET /ready`,
+`GET /status`, `GET /diagnostico`. Acrescentar uma quinta exige decisão registrada.
+
+`/status` e `/diagnostico` ficam públicos **de propósito**: são o caminho que precisa
+funcionar quando o sistema está quebrado, inclusive quebrado no login — que é exatamente
+quando alguém precisa deles (RNF-12). Exigir credencial neles é exigir que o sistema esteja
+saudável para que se possa descobrir que ele não está. O comentário que já existe em
+`statusRoutes.js:125-133` argumenta isso e o argumento está correto.
+
+A contrapartida é que **o controle passa a ser o conteúdo, não o acesso**: o teste de redação
+da §7 nomeia essas duas rotas e reprova o build se a resposta trouxer dado pessoal ou segredo.
+Segredo aparece só como `[DEFINIDO]`/`[NAO_DEFINIDO]`.
 
 ---
 
@@ -207,9 +277,14 @@ conhece.
 - [ ] Token de `SECRETARIA` é recusado com **403** em rota de `ADMINISTRADOR`
 - [ ] Requisição sem token é recusada com **401**
 - [ ] **Rota sem declaração de papel é negada em tempo de execução**
-- [ ] **O CI reprova quando uma rota nova não declara papel nem `publica()`**
+- [ ] **O CI reprova quando uma rota nova não declara nenhum dos quatro tipos**
+- [ ] A barreira varre a árvore Express **inteira** — `loadRoutes` e o que é montado em `app.js`
+- [ ] `autenticacaoPropria('monitorCallbackAuth')` reprova se o middleware nomeado sair da cadeia
+- [ ] `POST /setup/initialize` responde 409 com o sistema já configurado — teste nomeado
+- [ ] `publica()` aplicado a uma quinta rota reprova o build
 - [ ] As dez rotas de `monitoringRoutes.js` exigem administrador `[V11]`
 - [ ] Não existe mais superfície duplicada de monitoramento `[V12]`
+- [ ] `GET /diagnostico-acessos/:id` não existe mais em `app.js`; a rota em `deviceRoutes.js` exige administrador `[C-008]`
 - [ ] `comecar-do-zero` (o apagamento global do banco), `zerar-tudo` e as demais rotas destrutivas exigem administrador `[V8]`
 
 **Trilha**
@@ -249,3 +324,14 @@ Qualquer um deles: issue de decisão primeiro.
 - **Não sei quantas rotas o frontend chama sem tratar 403.** Hoje só existe 401. A tela
   pode quebrar de formas estranhas quando o backend passar a negar por papel. A fatia E da
   auditoria deve olhar isso, e o pacote do frontend precisa acompanhar esta release.
+- **Quatro tipos de declaração podem virar quatro lixeiras.** Reduzi o risco tornando
+  `publica()` lista fechada e fazendo a barreira conferir o middleware nomeado em
+  `autenticacaoPropria`. Mas `preAutenticacao(motivo)` aceita motivo livre — nada impede
+  alguém de escrever um motivo qualquer e passar. A revisão humana é o único controle ali.
+- **`/status` e `/diagnostico` públicos são uma aposta na redação, não no acesso.** Se o
+  sanitizador tiver furo, a rota entrega estado operacional da escola para a rede inteira. A
+  aposta é deliberada e o motivo é bom, mas o teste de redação passa a ser um controle de
+  segurança de primeira linha, não um detalhe de qualidade.
+- **Mandei apagar `/diagnostico-acessos/:id` sem saber quem chama.** Se alguma ferramenta
+  interna ou atalho do Caio usa aquela URL, ela quebra. A rota autenticada equivalente existe
+  e serve, mas o caminho muda.
