@@ -199,18 +199,40 @@ gravadas (operacional, visita).
 **Contrato.** Nenhuma string vinda de `req.body`, `req.query` ou `req.params` chega a uma
 posição de identificador SQL. Colunas de escrita vêm de `projecoes[tabela].escrita`.
 
-**Comportamento seguro.** Em `criar` e `editar`, `Object.keys(dados)` é intersectado com
-`escrita`. Chave fora da lista → **400**, nomeando as chaves recusadas.
+**Comportamento seguro — revisto em 2026-08-15 pela contradição achada no inventário do
+R1-04B.** A versão anterior desta seção mandava 400 para toda chave fora de `escrita`. Isso
+quebrava `PATCH /unidade`, que **funciona hoje**, e punha a correção do frontend no caminho
+crítico de um sistema que terá uma visita presencial só. Três classes, não duas:
 
-Descarte silencioso está **proibido**, e a razão é a mesma do AGENTS.md: responder 200 depois
-de não gravar o campo é afirmar um estado que não existe. O usuário edita o telefone, vê
-"salvo com sucesso", e o telefone é o antigo.
+| Chave | Desfecho |
+|---|---|
+| ∈ `escrita` | aplicada |
+| ∉ colunas declaradas da tabela | **400**, nomeando a chave. Não é coluna: é bug ou sondagem |
+| ∈ colunas declaradas, ∉ `escrita` (`id`, `created_at`, `updated_at`, segredo em entidade só-leitura) | **ignorada e nomeada na resposta**, em `ignorados: [...]` |
 
-> ⚠️ **Isto quebra o frontend se `escrita` for montada por adivinhação.** O primeiro passo do
-> pacote é **medir**: varrer o repositório `SAGE` atrás de todo corpo de `POST`/`PATCH`
-> efetivamente enviado, e derivar `escrita` da interseção entre isso e as colunas reais do DDL.
-> Divergência entre o que o frontend manda e o que a tabela tem é achado — registre, não
-> acomode. Sem esse inventário o pacote **não começa**.
+Se depois da filtragem não sobrar nenhuma chave aplicável → **400**. Isso preserva o
+comportamento que `schoolController.js:240` já tem hoje.
+
+**A proibição de descarte silencioso continua de pé — o que mudou é onde estava a mentira.**
+A mentira nunca foi o descarte: era responder `"atualizado com sucesso"` sem dizer o que não
+foi aplicado. Resposta que **nomeia** o que ignorou não esconde nada de ninguém. Descartar sem
+avisar segue proibido.
+
+A enforcement mora em `generic-db-utils.js`, **não** nos controllers. São 7 callsites de
+`criarRegistro`/`atualizarRegistro` fora do módulo; travar no ponto de estrangulamento cobre
+os sete por construção e torna impossível acrescentar um oitavo inseguro. O módulo levanta erro
+tipado; o controller mapeia para 400.
+
+> ⚠️ **O inventário do frontend é o primeiro passo do pacote e não é opcional.** Medido em
+> 2026-08-15: dois pontos do `SAGE` espalham linha vinda do `GET` dentro do corpo de escrita —
+> `Settings.js:172` (`{ ...unidade }`) e `DadosEscolares.js:90,116` (`{ ...item }` →
+> `{ ...formData }`), este cobrindo escola, curso, turma e sala pelo mesmo `handleSubmit`.
+> `Areas.js:179` espalha objeto montado localmente e está correto. Os outros nove arquivos de
+> escrita montam corpo explícito.
+>
+> Os dois são corrigidos no R1-04B1 — corpo de escrita monta campo a campo, nunca espalha linha
+> lida. Com a regra das três classes isso deixa de ser pré-requisito de correção e passa a ser
+> higiene: o sistema não quebra se um payload sujo escapar.
 
 `queryBuilder.buildQuery()` ganha asserção: tabela, coluna, direção de `ORDER BY` conferidas
 contra allowlist; `LIMIT`/`OFFSET` coeridos a inteiro. Hoje nenhum consumidor passa dado de
@@ -218,14 +240,21 @@ cliente — a asserção existe para que continue assim.
 
 **Testes.**
 - `PATCH /pessoas/:id` com chave `"nome = 'x' --"` → 400, e o SQL executado não muda de forma
-- `POST` com chave válida em maiúsculas/minúsculas trocadas → decidido explicitamente e testado
-  (a comparação é **case-sensitive**; MySQL trata nome de coluna sem distinção de caixa, mas
-  aceitar variação de caixa é aceitar que a allowlist tenha entradas que ninguém declarou)
 - corpo com chave desconhecida → 400 nomeando a chave, **e** o registro não foi alterado
+- `PATCH` com `id`/`created_at`/`updated_at` mais um campo editável → 200, o campo editável
+  gravado, os três nomeados em `ignorados`, e `updated_at` **não** veio do cliente
+- `PATCH` só com chaves só-leitura → 400 ("nenhum campo aplicável")
+- chave válida com a caixa trocada → **400**. A comparação é **case-sensitive**: MySQL não
+  distingue caixa em nome de coluna, e aceitar variação é aceitar entrada que ninguém declarou
+- oitavo callsite: um teste prova que nenhum `INSERT`/`UPDATE` compõe identificador fora de
+  `generic-db-utils.js`
 - `queryBuilder` com coluna fora da allowlist → levanta, não interpola
-- o inventário do frontend vira um teste: os corpos reais que a interface envia passam todos
+- o inventário do frontend vira teste **no repositório `SAGE`**: nenhum corpo de `api.post`/
+  `api.patch` espalha objeto vindo de resposta da API. Asserção sobre o padrão, não sobre a
+  lista de campos — lista de campos duplicada em dois repositórios sem pacote comum diverge
 
 **Fora de escopo.** Migrar para Knex (ADR-0010, issue própria). Transações (`C-018`, R1-03).
+Redesenhar o formulário de edição do frontend — o conserto é o corpo de escrita, não a tela.
 
 ### 3.4 `[C-016]` — erro interno na resposta
 
@@ -392,13 +421,40 @@ o que quebrou na R0.
 | Pacote | Fecha | Entrega |
 |---|---|---|
 | **R1-04A** | `C-001`, `A-002` (resposta) | `projecoes.js`, factory projetando por `leitura`, `criar` sem `SELECT *`, guard de projeção |
-| **R1-04B** | `A-001` | inventário do frontend **primeiro**, allowlist de escrita com 400, asserção no `queryBuilder` |
+| **R1-04B0** | — (habilitador) | declara as **11 tabelas restantes** em `projecoes.js` e liga o guard de completude |
+| **R1-04B1** | `A-001` | allowlist de escrita em `generic-db-utils.js` (três classes), asserção no `queryBuilder`, corpos de escrita do `SAGE` |
 | **R1-04C** | `C-017` | linha de log por rota, IP fora, sanitizador no transport, redação de query secreta |
 | **R1-04D** | `C-016`, `C-019` | corpo de erro incondicional, sweep dos 69 callsites + guard estático, boot fail-closed, `/health` mínimo |
 | **R1-04E** | `+2A-C10`, `A-002` (export) | `foto` fora de `escrita`, contenção canônica no filesystem, aba Catracas sem credencial |
 
-**R1-04A é pré-requisito de B e E** — os dois dependem de `projecoes.js` existir. C e D são
-independentes entre si e do resto.
+**R1-04A é pré-requisito de B0 e E** — os dois dependem de `projecoes.js` existir. **B0 é
+pré-requisito de B1.** C e D são independentes entre si e do resto.
+
+**Por que B0 é pacote próprio.** O R1-04A declarou duas tabelas: `UnidadeEscolar` e
+`Dispositivo`. Existem **13 controllers genéricos**, cobrindo mais 11 tabelas sem declaração —
+`Area`, `Acesso`, `Empresa`, `Turma`, `Curso`, `Sala`, `UnidadeFoto`, `Presenca`, `Materia`,
+`SolicitacaoAcesso` e `Pessoa`. Onze declarações mais o cruzamento com o DDL mais os testes já
+comem sozinhos o teto de ~300 linhas; somar a isso a enforcement, o `queryBuilder` e o
+frontend produz o PR gigante que a R0 provou que ninguém revisa.
+
+**Nada é afrouxado ao separar — são dois guards distintos, e cada um nasce estrito.**
+
+- **B0 liga o guard de completude.** `obterDeclaracao` já levanta para tabela sem declaração
+  (`projecoes.js`, R1-04A). B0 torna isso verdadeiro para todas as tabelas alcançáveis por
+  controller, e acrescenta o teste que reprova quando um controller novo aparece sem
+  declaração. O guard não muda de rigor; muda de cobertura.
+- **B1 liga o guard de escrita** no ponto de estrangulamento.
+
+B0 é **mecânico e conferível**: cada `leitura`/`escrita` sai de `database/sage.sql`, não de
+julgamento. A única decisão por tabela é o que é `segredo`, e fora de `UnidadeEscolar` e
+`Dispositivo` — já feitas — não há credencial nas onze. Regra de corte para B0: coluna que
+existe no DDL entra em `leitura`; entra em `escrita` menos `id`, `created_at` e `updated_at`.
+Divergência entre DDL e o que o controller declarava em `campos` é **achado**: registre em
+issue, não acomode em silêncio.
+
+> Achado encontrado no inventário, para registrar e **não** puxar: `roomController.js` e
+> `salaController.js` servem os dois a tabela `Sala`. Superfície duplicada, mesma classe do
+> `[V12]`/`[C-008]`. Uma declaração serve às duas, então B0 não trava — mas abra a issue.
 
 O **guard de vazamento** da §4 entra no **último** pacote fechado, não no primeiro: antes disso
 ele reprova de propósito, e um guard que nasce vermelho é um guard que alguém desliga.
@@ -411,8 +467,12 @@ Cada um com teste que falha antes e passa depois.
 
 - [ ] Nenhuma resposta da API, em nenhum papel, contém hash de senha ou credencial de catraca
 - [ ] `criar` devolve projeção de leitura, não `SELECT *`
-- [ ] Chave de corpo fora da allowlist → 400 nomeando a chave, sem alterar o registro
-- [ ] Os corpos que o frontend `SAGE` realmente envia passam todos na allowlist de escrita
+- [ ] Todas as tabelas alcançáveis por controller têm declaração; controller novo sem
+      declaração reprova o CI
+- [ ] Chave que não é coluna → 400 nomeando a chave, sem alterar o registro
+- [ ] Chave só-leitura → ignorada **e nomeada** em `ignorados`; corpo só de chaves só-leitura → 400
+- [ ] `PATCH /unidade` continua funcionando com o payload que o `Settings.js` envia hoje
+- [ ] Nenhum corpo de escrita do `SAGE` espalha objeto vindo de resposta da API
 - [ ] Corpo de erro 500 não contém `err.message` em nenhum ambiente; guard estático verde
 - [ ] `traceId` da resposta casa com a linha de log, e é gerado por CSPRNG
 - [ ] Nenhum arquivo de log contém query string, token ou IP de origem — verificado **lendo o
@@ -441,11 +501,23 @@ Qualquer um deles: **issue de decisão e pare.**
 
 ## 8. Onde isto pode dar errado
 
-- **A allowlist de escrita é a mudança que pode derrubar a interface.** É o único item aqui que
-  transforma requisição que hoje funciona em 400. O inventário do frontend antes de codificar é
-  obrigatório, e mesmo assim ele só cobre o que está no código — fluxo que passe por payload
-  montado dinamicamente escapa. Se o R1-04B começar a produzir 400 em tela, a decisão certa é
-  **parar e ampliar a lista com o campo nomeado**, nunca afrouxar para "aceita qualquer chave".
+- **A regra das três classes tira a interface do caminho crítico, mas cria uma zona cinzenta
+  nova.** A distinção "não é coluna → 400" versus "é coluna só-leitura → ignora e avisa" depende
+  de a declaração estar certa. Coluna que **deveria** ser editável e ficou fora de `escrita` por
+  engano vira um campo que o usuário edita, vê aparecer em `ignorados` que a tela não mostra, e
+  conclui que salvou. É mais silencioso que o 400 que eu tinha especificado antes. A mitigação
+  real não é de backend: a tela precisa exibir `ignorados`, e isso não está no escopo de nenhum
+  pacote desta release. **Registre como issue de frontend antes de fechar o R1-04B1.**
+
+- **Se o R1-04B1 começar a produzir 400 em tela**, a decisão certa é **parar e ampliar a
+  declaração com o campo nomeado**, nunca afrouxar para "aceita qualquer chave" nem promover a
+  chave para a classe ignorável só para o vermelho sumir.
+
+- **O inventário do frontend cobre o que está no código.** Payload montado dinamicamente — chave
+  computada, `Object.assign` em cima de resposta, campo vindo de configuração — escapa do grep.
+  Meu primeiro levantamento procurou `{ ...item }` e **perdeu** o `Settings.js:172`, que usa
+  outro nome de variável. O teste de padrão no repositório `SAGE` existe justamente porque a
+  varredura manual já errou uma vez.
 
 - **Boot fail-closed troca um risco silencioso por um risco barulhento, e barulhento numa escola
   sem técnico ainda dói.** Defendo a decisão — dado de presença tem peso legal e estado parcial é
