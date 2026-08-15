@@ -61,6 +61,56 @@ com código de erro próprio. Não é `console.warn` — é falha fechada, na po
 `updated_at` são legítimos em `leitura` e proibidos em `escrita`; `Dispositivo.senha` é
 legítimo em `escrita` (o operador cadastra a catraca) e proibido em `leitura`.
 
+#### `segredo` é **derivado**, não julgado
+
+Acrescentado em 2026-08-15, depois de o R1-04B0 achar `Pessoa.senha_acesso`. A versão anterior
+mandava `segredo: []` para as onze tabelas restantes — e isso era **asserção minha, não
+derivação**. Eu escrevi "fora de `UnidadeEscolar` e `Dispositivo` não há credencial nas onze"
+sem abrir o DDL. Havia.
+
+A regra passa a ter fonte, e a fonte é o próprio esquema:
+
+> **Coluna cujo comentário no DDL exige criptografia é `segredo`.**
+> `grep -niE 'criptograf' database/sage.sql`
+
+Medido em `6523ab2`, isso dá exatamente três colunas, e nenhuma outra:
+
+| Linha | Coluna | Estado |
+|---|---|---|
+| `sage.sql:20` | `UnidadeEscolar.senha` | já declarada (R1-04A) |
+| `sage.sql:65` | `Dispositivo.senha` | já declarada (R1-04A) |
+| `sage.sql:112` | `Pessoa.senha_acesso` | **faltando — é a contradição** |
+
+`Pessoa.senha_acesso` é hash bcrypt (`peopleService.js:88` chama `hashSenha`), tem a mesma forma
+de `UnidadeEscolar.senha`, e **o frontend não o referencia em lugar nenhum** — zero ocorrências
+em `SAGE/src`. Declará-lo `segredo` não quebra tela alguma. Fica: `escrita` sim, `leitura` não,
+`segredo` sim.
+
+**A regra ganha rede de segurança**, para não depender de ninguém repetir o `grep`: o guard
+reprova se existir coluna com comentário de criptografia no DDL que não esteja em `segredo`.
+Migração futura que acrescente uma quarta credencial reprova o CI até ser declarada.
+
+#### O que **não** é `segredo` — e a tentação de usar o sanitizador como fonte
+
+`sanitizador.js` também lista `senha_acesso` em `CAMPOS_PESSOAIS`, e isso torna tentador usar
+`CAMPOS_PESSOAIS` como a segunda fonte de derivação. **Não use.** Ela contém `nome`, `cpf`,
+`email`, `telefone`, `foto`, `data_nascimento`, `cep` — derivar `segredo` dela apaga
+`Pessoa.nome` de toda resposta e mata o produto. É a armadilha da §2.2 chegando por outra porta.
+
+Três categorias distintas, e colapsar duas delas quebra alguma coisa:
+
+| Categoria | Exemplo | Onde vive | Controle |
+|---|---|---|---|
+| **Segredo** | `senha_acesso` | nunca em `leitura` | projeção |
+| **Credencial de emissão auditada** | `qr_code`, `cartao_rfid` | em `leitura` | autorização + trilha (R1-03) |
+| **Dado pessoal** | `nome`, `cpf` | em `leitura` | autorização (R1-02) |
+
+`qr_code` e `cartao_rfid` **são** credencial reutilizável — quem tem o valor passa na catraca.
+Mas têm caminho de emissão legítimo e já auditado (`r1-03b2c-qr-auditoria`), e o frontend os usa
+em 16 pontos. Tratá-los como `segredo` aqui quebraria a emissão de crachá. Ficam em `leitura`
+nesta release. **Se a emissão deve ser restrita a `ADMINISTRADOR` é decisão separada — abra
+issue, não resolva no B0.**
+
 ### 2.2 O sanitizador **não** vale para resposta de negócio
 
 `src/services/sanitizador.js` já existe, é bom, e resolve o lado do **log**. Ele redige por
@@ -445,12 +495,27 @@ frontend produz o PR gigante que a R0 provou que ninguém revisa.
   declaração. O guard não muda de rigor; muda de cobertura.
 - **B1 liga o guard de escrita** no ponto de estrangulamento.
 
-B0 é **mecânico e conferível**: cada `leitura`/`escrita` sai de `database/sage.sql`, não de
-julgamento. A única decisão por tabela é o que é `segredo`, e fora de `UnidadeEscolar` e
-`Dispositivo` — já feitas — não há credencial nas onze. Regra de corte para B0: coluna que
-existe no DDL entra em `leitura`; entra em `escrita` menos `id`, `created_at` e `updated_at`.
-Divergência entre DDL e o que o controller declarava em `campos` é **achado**: registre em
+B0 é **mecânico e conferível**: os três conjuntos saem de `database/sage.sql`, não de
+julgamento. Regra de corte, na íntegra:
+
+1. `segredo` = colunas cujo comentário no DDL exige criptografia (§2.1). Nas onze, isso é
+   **exatamente `Pessoa.senha_acesso`** — as outras dez ficam com `segredo: []`, e agora isso
+   é resultado da regra, não asserção
+2. `leitura` = todas as colunas do DDL **menos** `segredo`
+3. `escrita` = todas as colunas do DDL **menos** `id`, `created_at`, `updated_at`
+
+`Pessoa.senha_acesso` é o único caso nas onze em que `escrita` e `leitura` divergem por
+segredo: entra em `escrita`, fica fora de `leitura`.
+
+Divergência entre o DDL e o que o controller declarava em `campos` é **achado**: registre em
 issue, não acomode em silêncio.
+
+> ⚠️ **`Pessoa` não passa pelo ponto de estrangulamento.** Verificado em `6523ab2`:
+> `peopleController` não usa `gerarController`, e nem ele nem `people-db-utils.js` chamam
+> `criarRegistro`/`atualizarRegistro`. `Pessoa` tem caminho próprio — `people-db-utils.js:74`
+> (insert) e `:311` (`pessoaFields`, update). B0 **declara** a tabela normalmente; o B1
+> precisa cobrir esse segundo caminho explicitamente, senão a allowlist de escrita passa ao
+> largo da tabela que carrega dado de menor de idade. Isso é escopo do B1, não do B0.
 
 > Achado encontrado no inventário, para registrar e **não** puxar: `roomController.js` e
 > `salaController.js` servem os dois a tabela `Sala`. Superfície duplicada, mesma classe do
@@ -469,6 +534,10 @@ Cada um com teste que falha antes e passa depois.
 - [ ] `criar` devolve projeção de leitura, não `SELECT *`
 - [ ] Todas as tabelas alcançáveis por controller têm declaração; controller novo sem
       declaração reprova o CI
+- [ ] `Pessoa.senha_acesso` está em `segredo` e em `escrita`, e fora de `leitura`
+- [ ] Coluna com comentário de criptografia no DDL que não esteja em `segredo` **reprova o CI** —
+      a rede que impede a quarta credencial de passar batida
+- [ ] `qr_code` e `cartao_rfid` continuam em `leitura`; a emissão de crachá não quebra
 - [ ] Chave que não é coluna → 400 nomeando a chave, sem alterar o registro
 - [ ] Chave só-leitura → ignorada **e nomeada** em `ignorados`; corpo só de chaves só-leitura → 400
 - [ ] `PATCH /unidade` continua funcionando com o payload que o `Settings.js` envia hoje
@@ -500,6 +569,25 @@ Qualquer um deles: **issue de decisão e pare.**
 ---
 
 ## 8. Onde isto pode dar errado
+
+- **Errei duas vezes seguidas do mesmo jeito: afirmei estado sem abrir o arquivo.** Primeiro
+  "o inventário do frontend" sem olhar `Settings.js`; depois "não há credencial nas onze" sem
+  abrir o DDL. As duas eram checáveis num comando, e as duas foram achadas pelo agente que
+  parou em vez de obedecer. **Enquanto a spec tiver afirmação minha sobre conteúdo de arquivo
+  que não esteja acompanhada do comando que a produziu, trate a afirmação como suspeita.**
+  A correção estrutural é a que está na §2.1: regra derivada com fonte, mais guard que reprova
+  a divergência — assim a próxima credencial é achada pelo CI, não por um agente atento.
+
+- **`qr_code` e `cartao_rfid` ficam em `leitura` e isso é uma dívida real, não um não-problema.**
+  São credenciais reutilizáveis de acesso físico saindo em resposta de API. Estou apostando que
+  a autorização da R1-02 mais a trilha da R1-03 bastam, e não medi essa aposta. Se a emissão de
+  crachá não estiver restrita a `ADMINISTRADOR`, uma secretaria pode listar o `cartao_rfid` de
+  qualquer pessoa — inclusive de quem tem acesso a áreas que ela não tem.
+
+- **`Pessoa` fora do ponto de estrangulamento é o buraco mais provável desta release.** B0
+  declara a tabela e o guard de completude fica verde, o que **parece** cobertura. Se o B1 não
+  tratar `people-db-utils.js` explicitamente, a tabela com dado de menor de idade fica declarada
+  e desprotegida — o pior dos dois mundos, porque o painel diz que está pronto.
 
 - **A regra das três classes tira a interface do caminho crítico, mas cria uma zona cinzenta
   nova.** A distinção "não é coluna → 400" versus "é coluna só-leitura → ignora e avisa" depende
