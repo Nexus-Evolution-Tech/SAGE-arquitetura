@@ -178,6 +178,9 @@ falha no meio deixa catracas em estado misto e não propaga nada.
 **Especificação completa e obrigatória:** `specs/R1-usuarios-e-autorizacao.md`. Leia inteira
 antes de escrever código.
 
+**R1-04 tem spec própria:** `specs/R1-04-vazamento-em-resposta-e-log.md` — cobre `[C-001]`
+`[C-016]` `[C-017]` `[C-019]` `[A-001]` `[A-002]` `[+2A-C10]` e corta o pacote em R1-04A..E.
+
 Acrescente a ela, da auditoria:
 
 - [ ] `GET /escolas` para de devolver hash de senha e contato `[C-001]`
