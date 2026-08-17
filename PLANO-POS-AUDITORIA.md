@@ -180,6 +180,12 @@ antes de escrever código.
 
 **R1-04 tem spec própria:** `specs/R1-04-vazamento-em-resposta-e-log.md` — cobre `[C-001]`
 `[C-016]` `[C-017]` `[C-019]` `[A-001]` `[A-002]` `[+2A-C10]` e corta o pacote em R1-04A..E.
+**Integrada em `bf6562e`.**
+
+**R1-05 tem spec própria:** `specs/R1-05-fronteira-e-falha-fechada.md` — cobre `[C-006]`
+`[C-008]` `[C-009]` `[C-013]` `[C-014]` `[C-015]` e o contrato de realtime, cortado em
+R1-05A..F. A decisão que governa a release está na §2: **`trust proxy` desligado,
+`x-forwarded-for` nunca lido, origem = endereço do socket** — porque a escola não tem proxy.
 
 Acrescente a ela, da auditoria:
 
