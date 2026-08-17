@@ -451,12 +451,84 @@ respeitar a projeção; isto é o item 3 aplicado, não escopo novo.
 O plano manda consertar aqui porque é a release que já mexe em WebSocket. **É o único pacote
 desta spec que não é segurança** — é a funcionalidade possivelmente não funcionar.
 
-- cliente emite `join`; servidor escuta `subscribe:acessos|dispositivos|sync|stats`. Protocolo
-  único e versionado
-- `io(SOCKET_URL)` × `path` do nginx: separar origem, namespace e `path`
-- `reconnectionAttempts: 5` e desiste em silêncio → backoff contínuo com estado visível
-- **teste de contrato cliente↔servidor atrás do proxy real.** Sem isso o conserto não tem como
-  ser provado
+Contrato fechado em 2026-08-17, quatro decisões. **Nenhuma delas é escolha do implementador.**
+
+#### 1. O protocolo canônico é `subscribe:*`. Quem muda é o cliente.
+
+O servidor **não ganha** handler `join`. `useWebSocket.js` para de emitir `join`/`join {room}` e
+passa a emitir `subscribe:acessos|dispositivos|sync|stats`.
+
+A razão não é "já estava assim": `join('acessos')` faz o **nome da sala virar string escolhida
+pelo cliente**, enquanto `subscribe:acessos` faz dela um nome de evento pertencente ao código.
+É exatamente o princípio da allowlist de escrita da R1-04B1 — identificador vindo de fora nunca
+vira estrutura. Além disso o R1-05E já pendurou a autorização por handler, e o guard de CI
+confere isso; mover para `join` levaria a autorização para um lugar onde a sala chega como dado.
+
+**Versionamento:** o conjunto de eventos aceitos é code-owned e fechado. Evento fora da lista →
+recusa, não `join` silencioso.
+
+#### 2. Nem "explicitar `/socket.io`" nem "alterar a URL": a URL volta a ser a origem, e o **`path`** vira o configurável.
+
+O defeito medido: `io('/backend')` — socket.io interpreta string iniciada por `/` como
+**namespace**, não como path. Então o cliente pede namespace `/backend` no path default
+`/socket.io`, o nginx não casa `location /backend/socket.io/`, cai no `location /` e recebe o
+`index.html` do SPA. Nunca houve socket.
+
+O servidor **não muda**: `nginx.conf:20` faz `rewrite ^/backend(.*)$ $1 break`, então a API já
+vê `/socket.io/`. Mantém o path default.
+
+O cliente passa a `io({ path: <configurável> })`, com a origem default (mesma origem). E o
+`path` tem **dois valores legítimos, pela mesma divergência de topologia da §2.1**:
+
+| Deployment | Proxy | `path` |
+|---|---|---|
+| **Escola** (`installer/windows`, bundle servido pela própria API) | nenhum | `/socket.io` ← **default** |
+| Docker (`nginx.conf`) | nginx com prefixo | `/backend/socket.io` |
+
+**Renomeie a variável.** `REACT_APP_SOCKET_URL` guardando um path é a causa da confusão —
+`Dockerfile:8` passa `/backend` para algo chamado URL, e `.env.production:4` deixa vazio. Vira
+`REACT_APP_SOCKET_PATH`, default `/socket.io`, e o `Dockerfile` passa `/backend/socket.io`.
+
+#### 3. `reconnectionAttempts: Infinity`, com o backoff que já existe e o erro **persistente**.
+
+`reconnectionDelayMax: 5000` já está lá, então é uma tentativa a cada 5s para sempre — o certo
+para um PC que fica ligado o dia inteiro numa escola. Sem teto, porque teto significa que a
+tela morre em silêncio depois de 5 tentativas e ninguém percebe.
+
+`connectionError` deixa de ser evento passageiro e vira **estado visível enquanto durar**. O
+critério é negativo e é o que o teste fixa: **não existe estado "desconectado e silencioso"** —
+se não há socket, a tela diz que não há.
+
+#### 4. Proxy HTTP real **em processo**, no CI da API. Sem docker, sem nginx.
+
+Não crie harness de container. Razões, em ordem:
+
+- o CI roda **ubuntu-latest e windows-latest**; docker+nginx no runner Windows é caro e frágil,
+  e um teste frágil é um teste que alguém marca como opcional
+- o que quebra de verdade é **reescrita de path e upgrade de WebSocket**. Um proxy Node em
+  processo reproduz os dois, determinístico e igual nos dois sistemas
+- **o repositório `SAGE` não tem CI nenhum** — `.github/` não existe lá. Verificado. O teste
+  precisa morar no `ci.yml` da API de qualquer forma
+
+**Escopo do teste:** job novo em `ubuntu-latest` no `ci.yml` da API, com checkout dos dois
+repositórios — o padrão já existe no job `instalador` (`FRONTEND_REF`, paths `api/` e `web/`).
+O teste sobe a API, sobe um proxy que reescreve `/backend/*` → `/*` e encaminha upgrade, aponta
+o cliente real com `path: '/backend/socket.io'`, autentica, assina `subscribe:acessos` e
+**recebe um `acesso:novo` emitido pelo servidor**.
+
+O `nginx.conf` ganha verificação **separada e barata**, porque o proxy em processo não é nginx:
+asserção sobre o arquivo — existe `location /backend/socket.io/`, tem `proxy_set_header Upgrade`,
+tem o `rewrite`. Isso não prova nginx; prova que a config não regrediu.
+
+**Testes.**
+- cliente real conectando com `path` errado → falha **de forma visível**, não pendura
+- cliente real com `path` correto atrás do proxy → conecta, assina e **recebe evento**
+- token de `SECRETARIA` assinando `sync` atrás do proxy → recusado (a tabela §3.6.2 vale
+  ponta a ponta, não só no handler)
+- derrubar a API no meio → cliente reconecta sozinho depois que ela volta, sem recarregar a
+  página, e o estado de erro fica visível durante a queda
+- evento fora da lista canônica → recusado
+- `nginx.conf` sem `proxy_set_header Upgrade` → reprova
 
 ---
 
