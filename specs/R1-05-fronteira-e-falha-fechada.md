@@ -356,6 +356,47 @@ Do lado do cliente, dois fatos que o pacote precisa tratar:
 - evento de acesso entregue a assinante autorizado não traz campo fora de `leitura`
 - trocar de usuário derruba o socket anterior e não entrega evento à identidade antiga
 
+#### 3.6.1 A medição do canal, e por que **E vem antes de F**
+
+Medido em 2026-08-17, a pedido da §7. O canal não está morto: está **meio vivo, e as duas
+metades falham de formas opostas.**
+
+| Caminho | Servidor | Cliente | Estado |
+|---|---|---|---|
+| **Por sala** | `emitToRoom('acessos', 'acesso:novo', …)` — 3 callsites em `accessController.js:58,68` e `accessService.js:396,404,722,730` | `useWebSocket.js` emite `join` e `join {room}` | **MORTO.** O servidor só escuta `subscribe:acessos\|dispositivos\|sync\|stats`. Ninguém entra na sala, e `io.to('acessos')` alcança **zero** sockets |
+| **Global** | `notificationService.js:30` → `io.emit('notification', …)` | qualquer socket conectado | **VIVO.** Não usa sala, então chega a **todos** — inclusive aos anônimos |
+
+**Consequência que decide a ordem: fazer F primeiro conserta o cano antes de existir a
+válvula.** Hoje o caminho por sala não vaza porque está quebrado. F o faz funcionar; se E ainda
+não tiver entrado, `acesso:novo` — que carrega id, nome, horário e decisão — passa a ser
+entregue a **cliente anônimo**. Inverter a ordem transforma um vazamento morto num vazamento
+vivo, em cima de dado de menor de idade.
+
+**E não é vazio sem F.** Dos quatro itens do contrato da §3.6, três são testáveis hoje:
+
+| Item | Sem F |
+|---|---|
+| 1. handshake recusa anônimo | **testável e vale hoje** — fecha o vazamento global vivo |
+| 2. sala autorizada por papel | o cliente real não entra em sala… |
+| 3. projeção no payload | **testável** — `io.emit` de notificação está vivo |
+| 4. cliente conecta só com sessão | **testável** |
+
+**O item 2 também não é vazio — ele só não pode ser testado pelo frontend.** O contrato que o E
+possui é o **do servidor**: `socket.on('subscribe:acessos', …)` passa a autorizar antes do
+`join`. O teste dirige o handler com um cliente socket.io sintético portando token de
+`SECRETARIA`. Isso é teste real de contrato de servidor. Que o frontend hoje chame outro nome
+de evento é problema do F.
+
+**O E não toca em nome de evento.** Renomear `subscribe:*` ou aceitar `join` é decisão de
+protocolo e pertence ao F. Fazer isso no E é exatamente a ampliação de pacote que se quer
+evitar.
+
+**Guard obrigatório no E, e é a única coisa que acrescento:** um teste reprova se existir
+`socket.on(...)` que faça `socket.join(...)` sem passar pela função de autorização. Sem ele, o
+F pode acrescentar um handler `join` sem cerca e ninguém nota — o protocolo novo entraria por
+fora da válvula que o E acabou de instalar. É o mesmo padrão da barreira da §4 da R1, e custa
+poucas linhas.
+
 ### 3.7 Contrato de realtime — `[+2A-E05/E07/E08]`
 
 O plano manda consertar aqui porque é a release que já mexe em WebSocket. **É o único pacote
@@ -387,7 +428,9 @@ pilha de PRs.**
 
 **A é pré-requisito de C** — o limite por origem depende de a origem ser confiável; ligá-lo
 antes seria limitar um endereço que o cliente escolhe. **D1 é pré-requisito de D2.**
-**E é pré-requisito de F.** B é independente.
+**E é pré-requisito de F, e isto é agora obrigatório, não preferência de ordem** — medido na
+§3.6.1. O caminho por sala está quebrado hoje e por isso não vaza; F o conserta. Entrar com F
+antes de E entrega `acesso:novo` a cliente anônimo. B é independente.
 
 **F é o pacote a cortar se a release esticar.** É o único que não é segurança, e o único cujo
 teste exige o proxy real de pé. Cortá-lo para a R1-06 não deixa buraco de fronteira aberto —
@@ -415,8 +458,11 @@ deixa uma funcionalidade possivelmente quebrada, que já está quebrada hoje.
 - [ ] Login inexistente e senha errada devolvem **mesmo status e mesmo corpo**, com tempo
       equivalente
 - [ ] Limite por origem dispara, e origem A no limite não afeta origem B
-- [ ] Handshake WebSocket sem token válido é recusado; sala é autorizada por papel
-- [ ] Evento de realtime não carrega campo fora de `leitura`
+- [ ] Handshake WebSocket sem token válido é recusado; sala é autorizada por papel, provado
+      com cliente socket.io sintético contra o handler do servidor
+- [ ] Nenhum `socket.on` entra em sala sem passar pela autorização — guard no CI
+- [ ] Evento de realtime não carrega campo fora de `leitura`, incluindo o `io.emit` global de
+      notificação, que é o único caminho vivo hoje
 - [ ] Testes verdes nos **dois** jobs (ubuntu e windows-latest)
 - [ ] Issues abertas e referenciadas: `[C-007]` callback 200 após falha parcial ·
       `+2A-C11` planilhas retidas · reencode de imagem · divergência de topologia dev × escola
@@ -483,11 +529,9 @@ Qualquer um deles: **issue de decisão e pare.**
   — mas se algum dia houver NAT, viram uma só, e o teto errado tranca a escola. Quem
   implementar precisa escolher o número **e** escrever por que ele é seguro para este prédio.
 
-- **Não sei se o WebSocket funciona hoje.** A segunda auditoria levanta que `join` × `subscribe`
-  podem nunca ter casado. Se o realtime está morto, o R1-05E vai "consertar" autenticação de um
-  canal que não entrega evento nenhum, e os testes de payload por papel vão passar por vacuidade.
-  **Meça se o canal entrega alguma coisa antes de começar o E** — se não entregar, F vira
-  pré-requisito de E em vez do contrário, e o corte desta spec se inverte.
+- ~~**Não sei se o WebSocket funciona hoje.** Se o realtime está morto, F vira pré-requisito de
+  E e o corte desta spec se inverte.~~ **MEDIDO EM 2026-08-17 — e esta nota estava errada. A
+  ordem E → F se confirma, e inverter seria perigoso. Ver §3.6.1.**
 
 - **A projeção no payload de evento (§3.6, item 3) atravessa a fronteira da R1-04 sem que eu
   tenha verificado como.** A projeção mora em `generic-db-utils`/controllers; o `io.emit` não
