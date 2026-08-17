@@ -397,6 +397,55 @@ F pode acrescentar um handler `join` sem cerca e ninguém nota — o protocolo n
 fora da válvula que o E acabou de instalar. É o mesmo padrão da barreira da §4 da R1, e custa
 poucas linhas.
 
+#### 3.6.2 Tabela papel→sala — a que faltava
+
+A §4.3 da R1 classifica rota HTTP e não mapeia estas quatro salas. Lacuna minha. A regra é a
+mesma da §4.3: **dado de negócio → `SECRETARIA`; estado interno do sistema → `ADMINISTRADOR`.**
+
+| Sala | Evento | Carrega | Papel |
+|---|---|---|---|
+| `acessos` | `acesso:novo` | `pessoa_id`, `pessoa_nome`, `dispositivo_id`, `status`, `permitido`, `data_hora` | **`SECRETARIA`** |
+| `dispositivos` | `dispositivo:status` | catraca online/offline | **`SECRETARIA`** |
+| `sync` | `sync:fila` | fila de sincronização | **`ADMINISTRADOR`** |
+| `stats` | `stats:update` | ver abaixo — **payload muda** | **`SECRETARIA`** |
+
+Como `PAPEIS_PERMITIDOS.SECRETARIA = {ADMINISTRADOR, SECRETARIA}`, o administrador entra em
+todas sem regra extra.
+
+**`acessos` é `SECRETARIA` porque é o trabalho dela.** A tela de monitoramento é dado de
+negócio em tempo real, não interno de sistema. Restringir a administrador quebraria a função
+principal do produto para quem a usa o dia inteiro.
+
+**`dispositivos` é `SECRETARIA` porque é *status*, não configuração.** A §4.3 põe "config de
+dispositivo" em `ADMINISTRADOR`; saber que a catraca caiu é o que permite agir, e quem está no
+balcão precisa saber.
+
+**`sync` é `ADMINISTRADOR`** — é a mesma classe do monitoramento `[V11]` que a §4.3 já colocou lá.
+
+**`stats` exigiu decisão, porque `globalState.getStats()` é misturado.** Ele devolve contadores
+de negócio (`acessos_hoje`, `acessos_negados_hoje`, `pessoas_ativas`, `catracas_online`,
+`catracas_offline`) **e** interno de sistema (`usuariosConectados`, `filaSincronizacao`,
+`sincronizacoesEmAndamento`, `uptime`). `ADMINISTRADOR` em bloco tira da secretaria o
+`acessos_hoje`, que é o número da tela inicial; `SECRETARIA` em bloco entrega interno de
+sistema a quem não precisa.
+
+**Decisão: a sala é `SECRETARIA` e o payload encolhe.** `stats:update` passa a emitir **somente
+os contadores de negócio**. O interno de sistema sai do realtime e continua em
+`/monitoring/state`, que já é `ADMINISTRADOR` por HTTP pela §4.3.
+
+Escolhi encolher o payload em vez de projetar por papel dentro da sala porque projeção por
+socket exige iterar conexões em vez de `io.to(sala).emit`, e sala nova mudaria o protocolo —
+que é do F. **Esta decisão não amplia o E:** o item 3 do contrato da §3.6 já mandava o payload
+respeitar a projeção; isto é o item 3 aplicado, não escopo novo.
+
+**Testes.**
+- token `SECRETARIA` entra em `acessos`, `dispositivos`, `stats`; é **recusado** em `sync`
+- token `ADMINISTRADOR` entra nas quatro
+- `stats:update` não contém `usuariosConectados`, `filaSincronizacao`,
+  `sincronizacoesEmAndamento` nem `uptime`
+- `acesso:novo` continua trazendo `pessoa_nome` — está em `leitura` de `Pessoa` pela R1-04, e
+  a tela precisa dele
+
 ### 3.7 Contrato de realtime — `[+2A-E05/E07/E08]`
 
 O plano manda consertar aqui porque é a release que já mexe em WebSocket. **É o único pacote
