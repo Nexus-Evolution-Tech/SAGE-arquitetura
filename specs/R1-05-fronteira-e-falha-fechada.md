@@ -101,14 +101,76 @@ legal (ADR-0007). A whitelist, quando existe, é contornável por header.
 
 **Contrato.**
 
-1. `MONITOR_CALLBACK_TOKEN` é **obrigatório**. Ausente ou vazio → **o boot falha**
-2. O token vem de `x-monitor-token`. `req.query.token` **deixa de ser aceito**
+1. `MONITOR_CALLBACK_TOKEN` é **obrigatório**. Ausente ou vazio → **o boot falha**.
+   Vale mesmo em modo polling: `notificationRoutes.js` está na lista de rotas essenciais de
+   `app.js:155` e é montada **incondicionalmente**, então a superfície existe mesmo com
+   `MONITOR_USE_PUSH=false` (que é o padrão em `.env.example:89`)
+2. **Transporte do token — revisto em 2026-08-17, ver §3.1.1.** O token é aceito em
+   `x-monitor-token` (**preferido**) **ou** em `?token=` (**aceito**). Header vence se os dois
+   vierem. Os dois passam pela mesma comparação em tempo constante
 3. Comparação em **tempo constante** (`crypto.timingSafeEqual`, com igualdade de tamanho
    tratada antes para não vazar comprimento)
-4. `MONITOR_IP_WHITELIST` continua **opcional** e passa a comparar contra
-   `req.socket.remoteAddress` normalizado. Configurada e não casando → 403
+4. `MONITOR_IP_WHITELIST` compara contra `req.socket.remoteAddress` normalizado. Não casando →
+   403. **Opcional em polling; obrigatória no boot quando `MONITOR_USE_PUSH=true`** — §3.1.1
 5. O `next()` final deixa de existir como caminho incondicional: sai por 401, 403 ou por um
    `next()` alcançável **somente** depois de o token ter casado
+
+#### 3.1.1 Por que o token continua aceito na query — correção de uma decisão minha
+
+A versão `11cd4d4` desta spec mandava recusar `?token=`. **Estava errada, e eu a escrevi sem
+verificar se a catraca consegue mandar header.** É a terceira vez nesta release que afirmo
+comportamento sem abrir o arquivo; a PR #110 implementou fielmente o que eu escrevi e o
+resultado quebraria o callback real.
+
+**A contradição, medida em `bf6562e`:** `deviceService.js:715-719` grava na catraca
+`path: 'api/notifications/dao?token=<segredo>'`, e o objeto `monitorConfig` enviado ao
+`set_configuration.fcgi` tem exatamente quatro campos — `request_timeout`, `hostname`, `port`,
+`path`. **Não há campo de header.** `docs/MONITOR_CONTROL_ID.md:66` e
+`docs/SEGURANCA_CATRACA_E_MONITORAMENTO.md:100,115,141` prescrevem a query. A catraca monta o
+POST sozinha; o SAGE só lhe diz para onde.
+
+**Se a Control iD suporta header customizado no Monitor, eu não sei — e não vou inventar.**
+
+**Por que o header valia pouco aqui, ao contrário do caso geral.** Os motivos clássicos para
+não pôr segredo em URL não se aplicam a este caminho:
+
+| Motivo clássico | Aqui |
+|---|---|
+| Histórico de navegador | não há navegador — é POST de dispositivo embarcado |
+| Cabeçalho `Referer` | idem |
+| Log de proxy | não há proxy na escola (§2.1) |
+| Log da própria API | **já fechado pela R1-04C** |
+
+E o que sobra é igual nos dois transportes: é HTTP em texto claro na rede da escola, então quem
+escuta o fio pega o token vindo em header ou em query. O mesmo segredo ainda fica gravado **na
+configuração da própria catraca**, legível por quem autenticar no equipamento — e
+`Dispositivo.senha` só sai do claro na R2.
+
+Ou seja: o ganho de mudar o transporte é quase nulo neste deployment, e o custo é perder o push
+em tempo real numa escola com **uma visita presencial só**. Otimizei uma propriedade secundária
+contra a função primária.
+
+**A query não é um bypass.** Com falha fechada, o token é exigido nos dois transportes — quem
+não tem o segredo não passa por lugar nenhum. A query é transporte mais vazado do **mesmo**
+credencial exigido, não um segundo caminho mais fraco. Por isso aceitar os dois não afrouxa o
+`C-006`: os itens 1, 3, 4 e 5 são o que fecham o achado, e nenhum depende do transporte.
+
+**Contrapartida obrigatória, porque token estático em HTTP claro é fraco de qualquer jeito.**
+Quando `MONITOR_USE_PUSH=true`, `MONITOR_IP_WHITELIST` passa a ser **exigida no boot**. Em modo
+push o segredo é gravado no equipamento e trafega na rede; o endereço de origem é o único
+controle que um atacante remoto não satisfaz. Ligar push já exige abrir porta no firewall e
+configurar rede à mão — quem faz isso consegue fixar o IP da catraca.
+
+> **Dependência registrada, e não é bloqueio do R1-05A.** A pergunta "o Monitor da Control iD
+> aceita header HTTP customizado no callback?" precisa de resposta do fabricante ou do
+> equipamento. Ela entra em `auditoria/INVENTARIO.md` §4, junto das outras perguntas de campo.
+> **Se a resposta for sim**, o header vira obrigatório e a query é removida — em pacote próprio,
+> com `deviceService`, docs e testes juntos. **Se for não**, esta seção é a resposta final e o
+> `C-006` está fechado como está.
+
+**Enquanto a query for aceita, a redação de log da R1-04C deixa de ser higiene e vira controle
+de segurança de primeira linha.** O teste que prova que nenhum arquivo de log contém query
+string passa a ser requisito do `C-006`, não só do `C-017`.
 
 **A declaração para de mentir.** A rota é `autenticacaoPropria('monitorCallbackAuth')` pela §4
 da R1, e a barreira já confere que o middleware está na cadeia. Hoje a declaração afirma uma
@@ -116,11 +178,18 @@ proteção inexistente; ao fim deste pacote ela passa a ser verdadeira.
 
 **Testes.**
 - sem `MONITOR_CALLBACK_TOKEN` → o processo **não sobe**; nenhuma porta escutando
-- token ausente → 401 · token errado → 401 · token certo em `?token=` → **401**
+- token ausente → 401 · token errado → 401, nos **dois** transportes
 - token certo em `x-monitor-token` → passa
+- token certo em `?token=` → **passa**. Este é o teste que prova a §3.1.1, e é o que teria
+  pego a contradição antes do merge
+- header e query presentes e divergentes → o **header** decide
+- `MONITOR_USE_PUSH=true` sem `MONITOR_IP_WHITELIST` → o processo **não sobe**
 - whitelist configurada + `x-forwarded-for` forjado apontando para IP permitido, socket fora →
   **403**. Este é o teste que prova a §2.1
 - nenhuma resposta de erro distingue "token ausente" de "token errado"
+- **teste ponta a ponta:** a URL que `deviceService.configurarMonitorNaCatraca` grava na catraca
+  é aceita pelo `monitorCallbackAuth`. Um único teste que consome a saída de um lado como
+  entrada do outro — a ausência dele é a causa raiz desta contradição
 
 **Fora de escopo.** `[C-007]` — o callback responder 200 depois de falha parcial. Mesmo
 arquivo, achado diferente, é confiabilidade e não fronteira. Issue própria.
@@ -329,8 +398,12 @@ deixa uma funcionalidade possivelmente quebrada, que já está quebrada hoje.
 ## 5. Critérios de aceite da release
 
 - [ ] Sem `MONITOR_CALLBACK_TOKEN` o processo não sobe
-- [ ] Callback recusa token em query string e aceita só por header, com comparação em tempo
-      constante
+- [ ] Callback aceita o token por header **ou** por query, sempre em tempo constante, e recusa
+      ausente/errado nos dois transportes
+- [ ] A URL que `deviceService` grava na catraca é aceita pelo `monitorCallbackAuth` — provado
+      por teste ponta a ponta, não por leitura
+- [ ] `MONITOR_USE_PUSH=true` sem `MONITOR_IP_WHITELIST` não sobe
+- [ ] Nenhum arquivo de log contém a query string do callback (R1-04C, agora requisito do C-006)
 - [ ] `x-forwarded-for` forjado não muda a origem observada em nenhum ponto do sistema
 - [ ] `diagnosticoAcessos` não é exposto por nenhuma rota sem `exige()`; `DIAGNOSTICO_KEY` não
       existe em `src/`
@@ -361,6 +434,25 @@ Qualquer um deles: **issue de decisão e pare.**
 ---
 
 ## 7. Onde isto pode dar errado
+
+- **Especifiquei um contrato de rede sem checar o que o outro lado consegue falar, e a PR #110
+  o implementou fielmente.** O CI ficou verde porque os dois lados foram testados separados: o
+  middleware contra requisições sintéticas, o `deviceService` contra nada. Uma spec que dita
+  transporte tem que trazer o teste que fecha o laço, e a §3.1.1 agora traz. **Este é o terceiro
+  erro meu da mesma classe nesta sequência** — afirmação sobre arquivo que eu não abri. Nas três
+  quem pegou foi o agente que parou em vez de obedecer; nenhuma foi pega por revisão minha.
+
+- **Manter a query aceita é uma decisão de risco, não um não-problema.** Se algum dia entrar um
+  proxy reverso na frente (a própria `SEGURANCA_CATRACA_E_MONITORAMENTO.md:129` recomenda nginx
+  para HTTPS), o token volta a cair em log de proxy — e aí o motivo clássico que eu descartei na
+  §3.1.1 passa a valer. A decisão está amarrada à topologia da §2.1: **mudou a topologia, as
+  duas seções caem juntas.**
+
+- **A whitelist obrigatória em push pode matar o callback em silêncio.** Se a catraca pegar IP
+  por DHCP e ele mudar, o POST passa a dar 403 e ninguém percebe — a tela de monitoramento
+  simplesmente para de atualizar, que é indistinguível de "não passou ninguém". Isso precisa de
+  IP fixo no equipamento, e isso é tarefa da visita. Sem a visita configurar, ligar push é pior
+  do que não ligar.
 
 - **A §2.1 é a decisão mais importante e a mais fácil de inverter por engano.** "Ligue
   `trust proxy` e leia `x-forwarded-for` direito" é o conselho que qualquer busca na internet
