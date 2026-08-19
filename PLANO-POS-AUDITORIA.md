@@ -186,6 +186,12 @@ antes de escrever código.
 `[C-008]` `[C-009]` `[C-013]` `[C-014]` `[C-015]` e o contrato de realtime, cortado em
 R1-05A..F. A decisão que governa a release está na §2: **`trust proxy` desligado,
 `x-forwarded-for` nunca lido, origem = endereço do socket** — porque a escola não tem proxy.
+**Integrada em `b181b704`** (API) e `76f5beb` (frontend).
+
+**R1-07 tem spec própria:** `specs/R1-07-frontend-identidade-e-autorizacao.md` — cobre
+`[E-003..E-007]` e `[+2A-E20]`, cortado em R1-07A..E, **todo no repo `SAGE`**. É o último pacote
+de implementação da R1. A §2.1 governa: **papel lido no cliente decide o que desenhar, nunca o
+que autorizar** — o servidor continua sendo a única autoridade.
 
 Acrescente a ela, da auditoria:
 
