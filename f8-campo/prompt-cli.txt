@@ -1,0 +1,50 @@
+Você está assumindo a execução do projeto SAGE nesta VM Windows com PowerShell administrativo.
+
+Raiz do backend:
+\\vmware-host\Shared Folders\Projetos\SAGE-WS\SAGE-API
+
+Antes de agir, leia integralmente:
+1. ..\docs\HANDOFF-CODEX.md
+2. ..\docs\HANDOFF-WINDOWS-VM.md
+3. docs\HANDOFF-WINDOWS-VM.md
+4. docs\planejamento\specs\F8-instalador-alpha-campo.md
+
+Confirme Git com:
+git remote -v
+git branch --show-current
+git status --short --branch
+
+Estado já observado:
+- layout 1.0.0 instalado em C:\Program Files\SAGE;
+- C:\ProgramData\SAGE deve ser preservado;
+- SAGEMySQL está Running;
+- SAGEAPI entra em crash loop, SCM exit 1067;
+- provision-services.ps1 -StartApi falhou porque /ready não respondeu;
+- contratos Windows: 30/30 passaram;
+- suíte completa anterior: 195 passes, 19 skips e 4 falhas;
+- não há gate aprovado.
+
+Continue sem parar no inventário:
+1. Leia C:\ProgramData\SAGE\logs\api\SAGE-API.err.log e SAGE-API.out.log.
+2. Diagnostique e corrija o crash da SAGEAPI.
+3. Rerode provision-services.ps1 -StartApi.
+4. Confirme serviços, ACLs, firewall, listener 3307 e readiness.
+5. Rode npx vitest run completo e registre passes, skips e falhas.
+6. Investigue os timeouts de servidor-web.test.js.
+7. Somente com suíte sem falhas e sem skips, capture a hierarquia MySQL.
+8. Mate o PID real do listener com Stop-Process -Force e prove um novo listener.
+9. Preserve o teste de falha real: não use Stop-Service no lugar de Stop-Process.
+10. Não force kill de mysqld.exe no uninstall.
+11. Prove reboot e uninstall preservando C:\ProgramData\SAGE.
+12. Só depois avance para Inno Setup, update e rollback.
+
+Restrições:
+- não toque em src/services/accessService.js;
+- preserve arquivos locais e não rastreados, especialmente src/controllers/horarioController 2.js;
+- não use reset --hard;
+- não apague branches;
+- não faça merge em main;
+- não publique EXE;
+- não exponha credenciais em logs, comandos ou respostas;
+- não declare verde enquanto houver skips ou falhas;
+- faça teste vermelho antes de qualquer correção de código.
