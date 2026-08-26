@@ -127,6 +127,35 @@ verde não equivale à resolução do problema ambiental.
 Candidatos a fechamento, somente com a evidência já comprovada: **#62/#69/#72/#75/#77/#87/#92/#94/#101
 e #67**. Nenhuma issue GitHub é fechada por este pacote.
 
+### Atualização específica da issue #2 — R1-06 reconciliada com R1-05F (2026-08-26)
+
+A fonte normativa é `specs/R1-05-fronteira-e-falha-fechada.md` §3.7. Por decisão do Arquiteto,
+R1-06 é o recorte adicional de fechamento e rastreabilidade do contrato funcional já entregue
+como R1-05F. **R1-06 está fechado documentalmente via R1-05F** porque todos os critérios têm
+teste nomeado e CI identificável; isto não fecha a issue, a R1 inteira ou o produto.
+
+As entregas são API [issue #119](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/119) /
+[PR #120](https://github.com/Nexus-Evolution-Tech/SAGE-API/pull/120), merge `b181b704`; frontend
+[issue #22](https://github.com/Nexus-Evolution-Tech/SAGE/issues/22) / [PR #23](https://github.com/Nexus-Evolution-Tech/SAGE/pull/23),
+merge `1bd694d`, e [PR #25](https://github.com/Nexus-Evolution-Tech/SAGE/pull/25), merge `76f5beb`;
+e API R1-05E [PR #118](https://github.com/Nexus-Evolution-Tech/SAGE-API/pull/118), merge `31774dab`.
+
+| Critério | Prova nominal | Execução remota verificada |
+|---|---|---|
+| `subscribe:*`, allowlist e sem `join`; sala não autorizada/evento fora da lista | API [`test/r1-05e-websocket.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/31774dab222a99c566fdb8d58489a48e3b73ed4a/test/r1-05e-websocket.test.js#L61-L80) e [barreira](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/31774dab222a99c566fdb8d58489a48e3b73ed4a/test/r1-05e-websocket.test.js#L109-L117), teste real atrás do proxy [`ci/r1-05f-websocket-proxy.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L147-L162); frontend [`useWebSocket.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE/blob/1bd694dc23eeb17bb0abcb75a7b78a051d084881/src/hooks/useWebSocket.test.js#L45-L66) | [API #120 Ubuntu](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263/job/95473036185) e [Windows](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263/job/95473075534), 4/4 cada; [frontend CI](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012672908/job/98322718912) passou a suíte |
+| same-origin; `REACT_APP_SOCKET_PATH` `/socket.io`/`/backend/socket.io` | [`WebSocketContext.js`](https://github.com/Nexus-Evolution-Tech/SAGE/blob/76f5beb131de3561407979643482a34e781f5684/src/contexts/WebSocketContext.js#L61-L85) e [`WebSocketContext.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE/blob/76f5beb131de3561407979643482a34e781f5684/src/contexts/WebSocketContext.test.js#L56-L89) | frontend CI acima + os dois jobs API #120 com path correto atrás do proxy |
+| `Infinity`, erro persistente e recuperação após queda | testes `mantem o erro visivel...`/`reconecta sem recarregar...` no [`WebSocketContext.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE/blob/76f5beb131de3561407979643482a34e781f5684/src/contexts/WebSocketContext.test.js#L93-L131); cliente real no teste API [L165-L185](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L165-L185) | frontend CI registrou `WebSocketContext.test.js`/`useWebSocket.test.js` como PASS; API #120 passou nos dois runners |
+| proxy Node com rewrite/upgrade e guarda separada do nginx | [`iniciarProxy`/`reescrever`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L47-L80), guarda [L188-L197](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L188-L197) e job explícito [`ci.yml`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/.github/workflows/ci.yml#L199-L237) | API #120: 1 arquivo/4 testes passados em Ubuntu e Windows |
+| path errado e auth/ACL de R1-05E | `falha de forma visível quando o path não é o contrato` no teste API; `SECRETARIA` recusada em `sync`; R1-05E [`31774dab`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/31774dab222a99c566fdb8d58489a48e3b73ed4a) com [`test/r1-05e-websocket.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/31774dab222a99c566fdb8d58489a48e3b73ed4a/test/r1-05e-websocket.test.js#L53-L80) | [CI #118](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32050974301/job/95449990404) registrou 8/8; #120 registrou os negativos e a recuperação |
+
+**Limitações que devem acompanhar o handoff:** a guarda do nginx é textual, não execução do
+nginx; os testes unitários do frontend mockam Socket.IO, enquanto a prova de transporte é o
+cliente real no teste da API; não há E2E de navegador. Os PRs frontend #23 (`1bd694d`) e #25
+(`76f5beb`) não tinham check remoto próprio no merge; a prova posterior é o [Frontend CI no
+descendente `2e18e95`](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012672908/job/98322718912),
+com 18 suítes/57 testes e build verde. #93, #96 e #47 permanecem pendentes; nenhuma issue é
+fechada por este pacote.
+
 ---
 
 ## 6. Como revisar — a regra que mais custou caro aqui
@@ -201,12 +230,12 @@ antes do próximo. Sem pilha de PRs** — foi a pilha que quebrou na R0.
 | R1-03 | Trilha de auditoria somente-inserção | spec §3, §7 | ✅ auditado |
 | R1-04 | Vazamento em resposta e log `[C-001][C-016][C-017][A-002][A-001][C-019][+2A-C10]` | plano R1 | ✅ auditado |
 | R1-05 | Superfície que só fecha com auth: uploads, WebSocket, diagnóstico, callback do monitor, rate limit de login `[C-006][C-008][C-009][C-013][C-014][C-015]` | plano R1 | ✅ auditado |
-| R1-06 | Contrato de realtime cliente↔servidor `[+2A-E05/E07/E08]` | plano R1 | ❌ **falta** |
+| R1-06 | Contrato de realtime cliente↔servidor `[+2A-E05/E07/E08]` | `specs/R1-05-fronteira-e-falha-fechada.md` §3.7 | ✅ **fechado via R1-05F; reconciliação documental** |
 | R1-07 | Frontend: 403 sem deslogar, ocultar ação de admin, troca de senha no 1º login, fallback neutro `[E-003..E-007][+2A-E20]` — **repo `SAGE`** | plano R1 | ✅ auditado |
 
 > Os parágrafos narrativos abaixo preservam a fotografia histórica de 2026-08-13. Para o estado
-> posterior, prevalecem a tabela acima e a atualização verificada da §5-bis; R1-06 continua
-> explicitamente pendente.
+> posterior, prevalecem a tabela acima e a atualização específica da issue #2; o antigo marcador
+> de R1-06 como pendente fica supersedido por essa reconciliação, sem fechar a R1 inteira.
 
 **Os pacotes 04 a 07 não têm spec — só bullets no plano.** Não os despache assim: o agente de
 codificação acabaria decidindo arquitetura, que é o que o contrato proíbe. **Me chame quando
