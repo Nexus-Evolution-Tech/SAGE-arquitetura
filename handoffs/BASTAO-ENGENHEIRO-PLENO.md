@@ -109,10 +109,11 @@ O teste é `src/components/pages/Adicionar/Adicionar.contract.test.js`; o CI rem
 [`33012409366`](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012409366) terminou verde,
 com suíte final de 18 suítes/57 testes e build compilado no Windows.
 
-R1-02, R1-03, R1-04, R1-05 e R1-07 possuem os commits e testes já auditados. Isto registra o
-estado dos pacotes, sem declarar a R1 inteira ou o produto terminados antes da validação final.
-A R1 fica fechada somente no escopo auditado, com as pendências classificadas abaixo; o produto
-não é terminado por este registro.
+R1-02, R1-03, R1-04, R1-05 e R1-07 possuem os commits e testes já auditados. Após o fechamento
+auditado da #96 e a integração do PR #9, isto registra a validação final do Arquiteto SAGE: a R1
+é entregue e defensável somente no escopo auditado, com as pendências classificadas abaixo. O
+fechamento integral da R1 aguarda a classificação final do EPIC #87; o produto não é terminado
+por este registro.
 
 ### Atualização específica da issue #96 — matriz QR/RFID (2026-08-26)
 
@@ -161,8 +162,17 @@ classificação final, atualmente por [#93](https://github.com/Nexus-Evolution-T
 (smoke/ACL Windows). A #96 tem o fechamento documental registrado acima; isso não encerra o
 épico nem a R1 fora do escopo auditado. As issues [#106](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/106)
 e [#107](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/107) são da R2 e não foram
-iniciadas. A R1 não é produto terminado; R2-01 permanece não iniciado e aguarda gate ou exceção
-formal de independência.
+iniciadas. A R1 não é produto terminado; R2-01 permanece não iniciado e bloqueado por padrão.
+Uma exceção só pode ser considerada com matriz de dependências aprovada e evidência objetiva de
+independência dos contratos R1, Sala, QR/RFID, realtime e Windows/ACL; este registro não inventa
+responsável nem prazo.
+
+### Próximo pacote documental
+
+O próximo pacote é a investigação/ADR documental da [#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93),
+sem código e sem alteração de comportamento público. A issue é o recorte do pacote; a spec é o
+contrato da release. Este pacote não amplia o escopo para código, testes, workflows ou mudança
+de política.
 
 O `AGENTS.md` de `_arquitetura/repo` já foi atualizado no commit
 [`1e43eeb`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/1e43eebb8045b92031575d28cd58fd48878071d7),
