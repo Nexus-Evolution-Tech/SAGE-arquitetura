@@ -111,6 +111,29 @@ com suíte final de 18 suítes/57 testes e build compilado no Windows.
 
 R1-02, R1-03, R1-04, R1-05 e R1-07 possuem os commits e testes já auditados. Isto registra o
 estado dos pacotes, sem declarar a R1 inteira ou o produto terminados antes da validação final.
+A R1 fica fechada somente no escopo auditado, com as pendências classificadas abaixo; o produto
+não é terminado por este registro.
+
+### Atualização específica da issue #96 — matriz QR/RFID (2026-08-26)
+
+A [issue #96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) fica registrada como
+fechada no escopo auditado pela matriz em
+[`specs/R1-04-qr-rfid-matriz.md`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/blob/791a37a6955fb3e5210105f0f4909c0cac59ee6e/specs/R1-04-qr-rfid-matriz.md).
+O conteúdo verificável está no commit
+[`9f38944`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/9f38944acead3ee3b2f73f2d98feb6779f02f62a),
+integrado em `main` pelo merge
+[`791a37a`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/791a37a6955fb3e5210105f0f4909c0cac59ee6e).
+A decisão registrada é:
+
+- `qr_code` tem endpoint explícito de emissão em `POST /pessoas/gerar_qrcode/:id`, com operação
+  auditada; sua leitura e seu retorno autorizado permanecem.
+- `cartao_rfid` tem atribuição dentro do `PATCH /pessoas/:id` auditado e também no `POST /pessoas`
+  legado. Não há emissor nem trilha específica de emissão RFID comprovados.
+- Ambos continuam em leitura/retorno autorizado, sem restrição global `ADMINISTRADOR`-only.
+  Regeneração e revogação permanecem fora de escopo e exigem nova ADR/issue antes de código.
+
+Este é um fechamento documental do recorte auditado, com pendências classificadas; não é declaração
+de produto terminado.
 
 ### Fechamentos verificáveis após a auditoria individual
 
@@ -130,14 +153,16 @@ R1 inteira.
 | [#92](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/92) | Frontend `2e18e95`; `DadosEscolares.contract.test.js`; Frontend CI `33012672908` passou 18 suítes/57 testes e build. |
 | [#94](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/94) | `fb7c42f` (PR #97); `test/r1-04b1-allowlist.test.js`; CI `31899882365`/`31899389145` passou. |
 | [#101](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/101) | `e75de4a` (PR #104); `test/r1-04d-errors.test.js`; CI `31903262839` passou. |
+| [#96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) | Matriz [`R1-04-qr-rfid-matriz.md`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/blob/791a37a6955fb3e5210105f0f4909c0cac59ee6e/specs/R1-04-qr-rfid-matriz.md); conteúdo `9f38944`; merge `791a37a`. |
 
-O [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87) permanece aberto por
-[#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93) (superfície duplicada de Sala),
-[#96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) (política/matriz de
-`qr_code`/`cartao_rfid`) e [#47](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/47)
-(smoke/ACL Windows). As issues [#106](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/106)
+O [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87) permanece aberto até a
+classificação final, atualmente por [#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93)
+(superfície duplicada de Sala) e [#47](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/47)
+(smoke/ACL Windows). A #96 tem o fechamento documental registrado acima; isso não encerra o
+épico nem a R1 fora do escopo auditado. As issues [#106](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/106)
 e [#107](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/107) são da R2 e não foram
-iniciadas. A R1 não é produto terminado; R2-01 aguarda gate ou exceção formal de independência.
+iniciadas. A R1 não é produto terminado; R2-01 permanece não iniciado e aguarda gate ou exceção
+formal de independência.
 
 O `AGENTS.md` de `_arquitetura/repo` já foi atualizado no commit
 [`1e43eeb`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/1e43eebb8045b92031575d28cd58fd48878071d7),
@@ -145,15 +170,14 @@ e o espelho em `SAGE-API/AGENTS.md` já existe no commit
 [`25826bd`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/25826bd5afaf9b08eb3033f41a767965960bb70c).
 Não reescreva `AGENTS.md` neste pacote.
 
-Pendências: **#93** (duplicação de Sala) permanece aberta; **#96** (política/matriz de
-`qr_code`/`cartao_rfid`) permanece aberta. A decisão arquitetural consultada é provisória:
-manter os campos em fluxos autorizados, sem restrição global a `ADMIN`, até haver matriz
-explícita, testes e documentação. **#47** permanece como smoke/ACL Windows a acompanhar; CI
-verde não equivale à resolução do problema ambiental.
+Pendências: **#93** (duplicação de Sala) permanece aberta e **#47** permanece como smoke/ACL
+Windows a acompanhar; CI verde não equivale à resolução do problema ambiental. A **#96** foi
+fechada somente no escopo auditado pela matriz acima: os campos permanecem em fluxos autorizados,
+sem restrição global a `ADMIN`, e a decisão não cria política de regeneração ou revogação.
 
-Os dez fechamentos verificáveis da API são **#62, #66, #67, #69, #72, #75, #77, #92, #94 e
-#101**, conforme a matriz acima. O #87 não está fechado, e nenhuma issue do GitHub é fechada
-automaticamente por esta atualização.
+Os onze fechamentos verificáveis da API são **#62, #66, #67, #69, #72, #75, #77, #92, #94,
+#101 e #96**, conforme a matriz acima. O #87 não está fechado, e nenhuma issue do GitHub é
+fechada automaticamente por esta atualização.
 
 ### Atualização específica da issue #2 — R1-06 reconciliada com R1-05F (2026-08-26)
 
@@ -187,8 +211,8 @@ nginx; os testes unitários do frontend mockam Socket.IO, enquanto a prova de tr
 cliente real no teste da API; não há E2E de navegador. Os PRs frontend #23 (`1bd694d`) e #25
 (`76f5beb`) não tinham check remoto próprio no merge; a prova posterior é o [Frontend CI no
 descendente `2e18e95`](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012672908/job/98322718912),
-com 18 suítes/57 testes e build verde. #93, #96 e #47 permanecem pendentes; nenhuma issue é
-fechada por este pacote.
+com 18 suítes/57 testes e build verde. #93 e #47 permanecem pendentes; #96 foi fechada somente
+no escopo auditado da matriz acima. Nenhuma issue é fechada por este pacote.
 
 ---
 

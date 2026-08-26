@@ -13,7 +13,8 @@
 
 Esta seção atualiza o estado verificável sem apagar o histórico de planejamento abaixo. O
 recorte é documental: não implementa código, não altera testes de aplicação e não fecha a R1
-inteira nem declara o produto terminado antes da validação final.
+inteira nem declara o produto terminado. A R1 fica fechada somente no escopo auditado, com as
+pendências classificadas abaixo.
 
 ### Evidências verificadas
 
@@ -41,12 +42,30 @@ inteira nem declara o produto terminado antes da validação final.
   [`25826bd`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/25826bd5afaf9b08eb3033f41a767965960bb70c).
   Não reescrever `AGENTS.md` neste pacote.
 
+### Atualização específica da issue #96 — matriz QR/RFID (2026-08-26)
+
+A [issue #96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) fica registrada como
+fechada no escopo auditado pela matriz em
+[`specs/R1-04-qr-rfid-matriz.md`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/blob/791a37a6955fb3e5210105f0f4909c0cac59ee6e/specs/R1-04-qr-rfid-matriz.md).
+O conteúdo verificável está no commit
+[`9f38944`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/9f38944acead3ee3b2f73f2d98feb6779f02f62a),
+integrado em `main` pelo merge
+[`791a37a`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/791a37a6955fb3e5210105f0f4909c0cac59ee6e).
+A decisão registrada é:
+
+- `qr_code` tem endpoint explícito de emissão em `POST /pessoas/gerar_qrcode/:id`, com operação
+  auditada; sua leitura e seu retorno autorizado permanecem.
+- `cartao_rfid` tem atribuição dentro do `PATCH /pessoas/:id` auditado e também no `POST /pessoas`
+  legado. Não há emissor nem trilha específica de emissão RFID comprovados.
+- Ambos continuam em leitura/retorno autorizado, sem restrição global `ADMINISTRADOR`-only.
+  Regeneração e revogação permanecem fora de escopo e exigem nova ADR/issue antes de código.
+
+Este é um fechamento documental do recorte auditado, com pendências classificadas; não é declaração
+de produto terminado.
+
 ### Pendências classificadas
 
 - **#93 — duplicação de Sala:** permanece aberta.
-- **#96 — política/matriz de `qr_code`/`cartao_rfid`:** permanece aberta e não está resolvida.
-  A decisão arquitetural consultada é provisória: manter os campos em fluxos autorizados, sem
-  restrição global a `ADMIN`, até existir matriz explícita, testes e documentação.
 - **#47 — smoke/ACL Windows:** permanece como pendência de ambiente a acompanhar. O CI verde
   deste pacote não resolve nem substitui a investigação do problema ambiental.
 
@@ -68,17 +87,18 @@ R1 inteira.
 | [#92](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/92) | Frontend `2e18e95`; `DadosEscolares.contract.test.js`; Frontend CI `33012672908` passou 18 suítes/57 testes e build. |
 | [#94](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/94) | `fb7c42f` (PR #97); `test/r1-04b1-allowlist.test.js`; CI `31899882365`/`31899389145` passou. |
 | [#101](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/101) | `e75de4a` (PR #104); `test/r1-04d-errors.test.js`; CI `31903262839` passou. |
+| [#96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) | Matriz [`R1-04-qr-rfid-matriz.md`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/blob/791a37a6955fb3e5210105f0f4909c0cac59ee6e/specs/R1-04-qr-rfid-matriz.md); conteúdo `9f38944`; merge `791a37a`. |
 
-O [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87) permanece aberto por
-[#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93) (superfície duplicada de Sala),
-[#96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) (política/matriz de
-`qr_code`/`cartao_rfid`) e [#47](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/47)
-(smoke/ACL Windows). Nenhuma dessas pendências está fechada por esta atualização.
+O [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87) permanece aberto até a
+classificação final, atualmente por [#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93)
+(superfície duplicada de Sala) e [#47](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/47)
+(smoke/ACL Windows). A #96 tem o fechamento documental registrado acima; isso não encerra o
+épico nem a R1 fora do escopo auditado.
 
 As issues [#106](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/106) e
 [#107](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/107) são da R2 e não foram
-iniciadas. A R1 não é produto terminado; o pacote R2-01 aguarda gate ou exceção formal de
-independência.
+iniciadas. A R1 não é produto terminado; o pacote R2-01 permanece não iniciado e aguarda gate
+ou exceção formal de independência.
 
 ### Atualização específica da issue #2 — reconciliação de R1-06 (2026-08-26)
 
@@ -119,8 +139,9 @@ e API R1-05E [PR #118](https://github.com/Nexus-Evolution-Tech/SAGE-API/pull/118
   navegador nesta reconciliação.
 - Os PRs frontend #23/#25 não tinham um check remoto próprio no momento do merge. A prova CI
   identificável é a execução posterior do [Frontend CI em `2e18e95`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/2e18e95f6097dbae20c494f9a94164f63d4bfa97), descendente de `76f5beb`, que registrou 18 suítes/57 testes e build verde; isso não transforma build em prova de requisito sem os testes nomeados acima.
-- **#93**, **#96** e **#47** continuam pendentes conforme a classificação existente. Este fechamento
-  é apenas R1-06 via R1-05F; não fecha a R1 nem o produto.
+- **#93** e **#47** continuam pendentes conforme a classificação existente. A **#96** foi fechada
+  somente no escopo auditado da matriz acima. Este fechamento é apenas R1-06 via R1-05F; não fecha
+  a R1 inteira nem o produto.
 
 ---
 
