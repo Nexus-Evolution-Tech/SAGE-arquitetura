@@ -9,6 +9,55 @@
 
 ---
 
+## Estado verificado — fechamento documental da R1 (2026-08-26)
+
+Esta seção atualiza o estado verificável sem apagar o histórico de planejamento abaixo. O
+recorte é documental: não implementa código, não altera testes de aplicação e não fecha a R1
+inteira nem declara o produto terminado antes da validação final.
+
+### Evidências verificadas
+
+- O achado de `Adicionar.js` que inventava uma foto foi corrigido no SAGE pelo commit
+  [`a342781`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/a3427814dced2bdc560b97c89c970a17f7094eca),
+  integrado na branch `wip/recuperacao-local-pre-auditoria` pelo merge
+  [`2e18e95`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/2e18e95f6097dbae20c494f9a94164f63d4bfa97).
+  A evidência de teste é `src/components/pages/Adicionar/Adicionar.contract.test.js`.
+  A execução remota [`33012409366`](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012409366)
+  terminou verde; a suíte final registrou **18 suítes e 57 testes**, e o build foi compilado no
+  Windows.
+- R1-02, R1-03, R1-04, R1-05 e R1-07 possuem os commits e testes dos respectivos pacotes já
+  auditados. Isso é estado verificado desses recortes, não a conclusão da R1: a validação final
+  da release ainda é necessária.
+  As referências verificáveis dos testes auditados são: R1-02, SAGE-API PRs #65/#68 e
+  `test/r1-02a-autorizacao-primitivas.test.js` / `test/r1-02b-barreira-rotas.test.js`; R1-03,
+  PRs #71/#76/#81/#82/#84/#85/#86 e os testes `test/r1-03*.test.js`; R1-04, PRs
+  #89/#95/#97/#100/#104/#108 e os testes `test/r1-04*.test.js`; R1-05, SAGE-API PRs
+  #110/#112/#114/#116/#118/#120 e SAGE PRs #19/#21/#23/#25, com os testes `test/r1-05*.test.js`,
+  `ci/r1-05f-websocket-proxy.test.js` e os testes de WebSocket do frontend; R1-07, SAGE PRs
+  #28/#32/#34/#36/#38, com os testes de identidade, senha, sessão, papel e Settings.
+- O `AGENTS.md` de `_arquitetura/repo` já está atualizado pelo commit
+  [`1e43eeb`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/1e43eebb8045b92031575d28cd58fd48878071d7),
+  e o espelho em `SAGE-API/AGENTS.md` já existe pelo commit
+  [`25826bd`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/25826bd5afaf9b08eb3033f41a767965960bb70c).
+  Não reescrever `AGENTS.md` neste pacote.
+
+### Pendências classificadas
+
+- **#93 — duplicação de Sala:** permanece aberta.
+- **#96 — política/matriz de `qr_code`/`cartao_rfid`:** permanece aberta e não está resolvida.
+  A decisão arquitetural consultada é provisória: manter os campos em fluxos autorizados, sem
+  restrição global a `ADMIN`, até existir matriz explícita, testes e documentação.
+- **#47 — smoke/ACL Windows:** permanece como pendência de ambiente a acompanhar. O CI verde
+  deste pacote não resolve nem substitui a investigação do problema ambiental.
+
+### Candidatos a fechamento
+
+Com base apenas na evidência já auditada, ficam indicados como candidatos a fechamento os
+pacotes/issues **#62, #69, #72, #75, #77, #87, #92, #94, #101 e #67**. Esta indicação não marca
+nenhuma issue do GitHub como fechada e não substitui a validação de cada fechamento.
+
+---
+
 ## 0. O que a auditoria mudou no plano
 
 Escrevi o roadmap apostando que "a R0 engorda, a sequência não muda". **Errei em três pontos**,
@@ -164,6 +213,9 @@ falha no meio deixa catracas em estado misto e não propaga nada.
 - [ ] `Adicionar.js:94-128` — `if (!payload.foto) payload.foto = "foto_exemplo.png"`. Ausência
       de foto vira nome de arquivo fictício **persistido como dado da pessoa**. É o invariante
       "nunca invente dado" quebrado numa linha
+      **Estado verificado em 2026-08-26:** corrigido no SAGE por `a342781`, integrado por
+      `2e18e95`, com `Adicionar.contract.test.js` e CI remoto `33012409366` verde. O checkbox
+      permanece histórico do plano e não deve ser convertido em conclusão de R0 neste pacote.
 - [ ] `controlId-utils.js:236` — `catch (err)` cujo corpo referencia `error`. O caminho de erro
       lança `ReferenceError` e destrói a causa original. **Achado do arquiteto; nenhuma das
       duas auditorias pegou.** Procure o mesmo padrão no resto do arquivo

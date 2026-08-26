@@ -99,6 +99,34 @@ nenhum PR aberto.
 **R1 começou. Pacote R1-01 despachado — issue #43 do SAGE-API — e está PARADO numa questão
 de decisão legítima.** A §7 diz o que fazer.
 
+## 5-bis. Atualização documental verificada (2026-08-26)
+
+O achado de `Adicionar.js` que inventava foto foi corrigido no SAGE pelo commit
+[`a342781`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/a3427814dced2bdc560b97c89c970a17f7094eca),
+integrado na branch `wip/recuperacao-local-pre-auditoria` pelo merge
+[`2e18e95`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/2e18e95f6097dbae20c494f9a94164f63d4bfa97).
+O teste é `src/components/pages/Adicionar/Adicionar.contract.test.js`; o CI remoto
+[`33012409366`](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012409366) terminou verde,
+com suíte final de 18 suítes/57 testes e build compilado no Windows.
+
+R1-02, R1-03, R1-04, R1-05 e R1-07 possuem os commits e testes já auditados. Isto registra o
+estado dos pacotes, sem declarar a R1 inteira ou o produto terminados antes da validação final.
+
+O `AGENTS.md` de `_arquitetura/repo` já foi atualizado no commit
+[`1e43eeb`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/1e43eebb8045b92031575d28cd58fd48878071d7),
+e o espelho em `SAGE-API/AGENTS.md` já existe no commit
+[`25826bd`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/25826bd5afaf9b08eb3033f41a767965960bb70c).
+Não reescreva `AGENTS.md` neste pacote.
+
+Pendências: **#93** (duplicação de Sala) permanece aberta; **#96** (política/matriz de
+`qr_code`/`cartao_rfid`) permanece aberta. A decisão arquitetural consultada é provisória:
+manter os campos em fluxos autorizados, sem restrição global a `ADMIN`, até haver matriz
+explícita, testes e documentação. **#47** permanece como smoke/ACL Windows a acompanhar; CI
+verde não equivale à resolução do problema ambiental.
+
+Candidatos a fechamento, somente com a evidência já comprovada: **#62/#69/#72/#75/#77/#87/#92/#94/#101
+e #67**. Nenhuma issue GitHub é fechada por este pacote.
+
 ---
 
 ## 6. Como revisar — a regra que mais custou caro aqui
@@ -169,12 +197,16 @@ antes do próximo. Sem pilha de PRs** — foi a pilha que quebrou na R0.
 | # | Pacote | Fonte | Spec? |
 |---|---|---|---|
 | R1-01 | Usuário e sessão | spec §2.1, §2.3, §2.4, §3, §5, §6 | ✅ issue #43, **parada** |
-| R1-02 | Autorização por papel, `exige()`/`publica()` fail-closed, barreira de CI, mata superfície duplicada `[V3][V11][V12]` | spec §4 | ✅ |
-| R1-03 | Trilha de auditoria somente-inserção | spec §3, §7 | ✅ |
-| R1-04 | Vazamento em resposta e log `[C-001][C-016][C-017][A-002][A-001][C-019][+2A-C10]` | plano R1 | ❌ **falta** |
-| R1-05 | Superfície que só fecha com auth: uploads, WebSocket, diagnóstico, callback do monitor, rate limit de login `[C-006][C-008][C-009][C-013][C-014][C-015]` | plano R1 | ❌ **falta** |
+| R1-02 | Autorização por papel, `exige()`/`publica()` fail-closed, barreira de CI, mata superfície duplicada `[V3][V11][V12]` | spec §4 | ✅ auditado |
+| R1-03 | Trilha de auditoria somente-inserção | spec §3, §7 | ✅ auditado |
+| R1-04 | Vazamento em resposta e log `[C-001][C-016][C-017][A-002][A-001][C-019][+2A-C10]` | plano R1 | ✅ auditado |
+| R1-05 | Superfície que só fecha com auth: uploads, WebSocket, diagnóstico, callback do monitor, rate limit de login `[C-006][C-008][C-009][C-013][C-014][C-015]` | plano R1 | ✅ auditado |
 | R1-06 | Contrato de realtime cliente↔servidor `[+2A-E05/E07/E08]` | plano R1 | ❌ **falta** |
-| R1-07 | Frontend: 403 sem deslogar, ocultar ação de admin, troca de senha no 1º login, fallback neutro `[E-003..E-007][+2A-E20]` — **repo `SAGE`** | plano R1 | ❌ **falta** |
+| R1-07 | Frontend: 403 sem deslogar, ocultar ação de admin, troca de senha no 1º login, fallback neutro `[E-003..E-007][+2A-E20]` — **repo `SAGE`** | plano R1 | ✅ auditado |
+
+> Os parágrafos narrativos abaixo preservam a fotografia histórica de 2026-08-13. Para o estado
+> posterior, prevalecem a tabela acima e a atualização verificada da §5-bis; R1-06 continua
+> explicitamente pendente.
 
 **Os pacotes 04 a 07 não têm spec — só bullets no plano.** Não os despache assim: o agente de
 codificação acabaria decidindo arquitetura, que é o que o contrato proíbe. **Me chame quando
@@ -218,10 +250,11 @@ despacho do R1-01 chegou íntegro (1197 chars contra 1198 bytes).
 `C:\Users\Admin\Documents\Projects\SAGE-API` que nem conhece as branches atuais — **não é
 aquele.** Todo prompt de entrada deve dizer isso, porque depois do `/new` ele não lembra.
 
-**Tarefa pendente sua:** o `AGENTS.md` §0 ainda descreve a topologia antiga de duas máquinas e
-diz que o arquiteto revisa PR. Atualize `_arquitetura/repo/AGENTS.md` §0 com os três papéis e
-**espelhe na raiz do SAGE-API** junto do próximo PR — deixei fora do R1-01 para não sujar o
-diff dele.
+**Registro histórico de 2026-08-13, superado em 2026-08-26:** este bastão dizia que o
+`AGENTS.md` §0 descrevia a topologia antiga de duas máquinas e pedia sua atualização e o
+espelhamento na raiz do SAGE-API. `_arquitetura/repo/AGENTS.md` já está atualizado (commit
+`1e43eeb`) e o espelho em `SAGE-API/AGENTS.md` já existe (commit `25826bd`). Não reescreva
+`AGENTS.md` neste pacote.
 
 ---
 
