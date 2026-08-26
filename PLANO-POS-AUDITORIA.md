@@ -9,11 +9,20 @@
 
 ---
 
-## Estado verificado — fechamento documental da R1 (2026-08-26)
+## Estado verificado — R1 fechada no escopo auditado (2026-08-26)
 
 Esta seção atualiza o estado verificável sem apagar o histórico de planejamento abaixo. O
 recorte é documental: não implementa código, não altera testes de aplicação e não fecha a R1
 inteira nem declara o produto terminado antes da validação final.
+
+### Atualização de sincronização — 2026-08-26
+
+A formulação vigente é: a R1 está fechada somente no escopo auditado, com pendências
+classificadas; isto não declara o produto terminado.
+
+- O EPIC #87 continua aberto, com #93, #96 e #47 como pendências classificadas.
+- A API #106 e #107 são R2, ainda abertas; nenhum pacote R2 foi iniciado.
+- R2-01 aguarda gate ou exceção documentada de independência.
 
 ### Evidências verificadas
 

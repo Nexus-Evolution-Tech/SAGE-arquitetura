@@ -101,6 +101,15 @@ de decisão legítima.** A §7 diz o que fazer.
 
 ## 5-bis. Atualização documental verificada (2026-08-26)
 
+### Atualização de sincronização — 2026-08-26
+
+A formulação vigente é: a R1 pode ser descrita somente como fechada no escopo auditado, com
+pendências classificadas; não declarar o produto terminado.
+
+- O EPIC #87 continua aberto, com #93, #96 e #47 como pendências classificadas.
+- A API #106 e #107 são R2, ainda abertas; nenhum pacote R2 foi iniciado.
+- R2-01 aguarda gate ou exceção documentada de independência.
+
 O achado de `Adicionar.js` que inventava foto foi corrigido no SAGE pelo commit
 [`a342781`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/a3427814dced2bdc560b97c89c970a17f7094eca),
 integrado na branch `wip/recuperacao-local-pre-auditoria` pelo merge
