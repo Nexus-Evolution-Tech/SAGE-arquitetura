@@ -56,6 +56,42 @@ Com base apenas na evidência já auditada, ficam indicados como candidatos a fe
 pacotes/issues **#62, #69, #72, #75, #77, #87, #92, #94, #101 e #67**. Esta indicação não marca
 nenhuma issue do GitHub como fechada e não substitui a validação de cada fechamento.
 
+### Atualização específica da issue #2 — reconciliação de R1-06 (2026-08-26)
+
+A fonte normativa de R1-06 é `specs/R1-05-fronteira-e-falha-fechada.md` §3.7. A decisão do
+Arquiteto é que R1-06 é um recorte adicional de fechamento e rastreabilidade do mesmo contrato
+funcional entregue como R1-05F; não há comportamento novo neste pacote documental.
+
+**Resultado: R1-06 fica fechado via R1-05F, documentalmente.** Cada cláusula da §3.7 tem teste
+nomeado e execução CI identificável. O fechamento não fecha a issue automaticamente, não fecha a
+R1 inteira e não declara o produto terminado.
+
+As entregas reconciliadas são API [issue #119](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/119) /
+[PR #120](https://github.com/Nexus-Evolution-Tech/SAGE-API/pull/120), merge `b181b704`; frontend
+[issue #22](https://github.com/Nexus-Evolution-Tech/SAGE/issues/22) / [PR #23](https://github.com/Nexus-Evolution-Tech/SAGE/pull/23),
+merge `1bd694d`, e [PR #25](https://github.com/Nexus-Evolution-Tech/SAGE/pull/25), merge `76f5beb`;
+e API R1-05E [PR #118](https://github.com/Nexus-Evolution-Tech/SAGE-API/pull/118), merge `31774dab`.
+
+| Cláusula da §3.7 / `[+2A-E05/E07/E08]` | Commit, arquivo e teste que provam o critério | CI verificável | Estado |
+|---|---|---|---|
+| Eventos canônicos `subscribe:*`, allowlist code-owned e nenhum `join` | API [R1-05E `31774dab`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/31774dab222a99c566fdb8d58489a48e3b73ed4a), [`test/r1-05e-websocket.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/31774dab222a99c566fdb8d58489a48e3b73ed4a/test/r1-05e-websocket.test.js#L61-L80) e [barreira](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/31774dab222a99c566fdb8d58489a48e3b73ed4a/test/r1-05e-websocket.test.js#L109-L117); API [R1-05F `b181b704`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/b181b704328349293267c4ff4158e2546e03272f), [`ci/r1-05f-websocket-proxy.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L147-L162); frontend [#23 `1bd694d`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/1bd694dc23eeb17bb0abcb75a7b78a051d084881), [`useWebSocket.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE/blob/1bd694dc23eeb17bb0abcb75a7b78a051d084881/src/hooks/useWebSocket.test.js#L45-L66) | API [#120 Ubuntu](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263/job/95473036185) e [Windows](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263/job/95473075534): 4/4 em cada; frontend [run 33012672908](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012672908/job/98322718912): suíte nomeada passou | ✅ |
+| Origem same-origin e `REACT_APP_SOCKET_PATH`: `/socket.io` e `/backend/socket.io` | frontend [#25 `76f5beb`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/76f5beb131de3561407979643482a34e781f5684), [`WebSocketContext.js`](https://github.com/Nexus-Evolution-Tech/SAGE/blob/76f5beb131de3561407979643482a34e781f5684/src/contexts/WebSocketContext.js#L61-L85) e [`WebSocketContext.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE/blob/76f5beb131de3561407979643482a34e781f5684/src/contexts/WebSocketContext.test.js#L56-L89); API proxy exercita `/backend/socket.io` em [`ci/r1-05f-websocket-proxy.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L142-L150) | [Frontend CI](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012672908/job/98322718912) passou `WebSocketContext.test.js`; os dois jobs do [CI #120](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263) passaram o path correto atrás do proxy | ✅ |
+| `reconnectionAttempts: Infinity`, backoff e erro persistente visível | frontend `WebSocketContext.js`/teste [#23](https://github.com/Nexus-Evolution-Tech/SAGE/blob/1bd694dc23eeb17bb0abcb75a7b78a051d084881/src/contexts/WebSocketContext.js#L71-L117) ([hotfix de assinatura em `76f5beb`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/76f5beb131de3561407979643482a34e781f5684)); testes `mantem o erro visivel...` e `reconecta sem recarregar...`; cliente real no teste API [#120](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L165-L185) | [Frontend CI](https://github.com/Nexus-Evolution-Tech/SAGE/actions/runs/33012672908/job/98322718912) registrou `WebSocketContext.test.js` e `useWebSocket.test.js` como PASS; API Ubuntu/Windows registraram recuperação como PASS | ✅ |
+| Proxy HTTP Node em processo com rewrite/upgrade e guarda separada do `nginx.conf` | `ci/r1-05f-websocket-proxy.test.js`: [`iniciarProxy` e `reescrever`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L47-L80), guarda independente do nginx [L188-L197](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L188-L197); job explícito no [`ci.yml`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/.github/workflows/ci.yml#L199-L237) | [Ubuntu](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263/job/95473036185) e [Windows](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263/job/95473075534) executaram `npx vitest run --config ci/vitest.config.js`: 1 arquivo/4 testes passados por job | ✅ |
+| Falhas e recuperação: path errado, sala não autorizada, evento fora da allowlist e queda/retorno | Testes nomeados em [`ci/r1-05f-websocket-proxy.test.js`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/b181b704328349293267c4ff4158e2546e03272f/ci/r1-05f-websocket-proxy.test.js#L142-L185): `falha de forma visível quando o path não é o contrato`, recusa `subscribe:sync` para `SECRETARIA`, recusa `join` arbitrário e `mostra erro durante a queda e reconecta...`; pré-requisito de auth/ACL no [R1-05E `31774dab`](https://github.com/Nexus-Evolution-Tech/SAGE-API/blob/31774dab222a99c566fdb8d58489a48e3b73ed4a/test/r1-05e-websocket.test.js#L53-L80) | [CI #120](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32056237263): 4/4 em Ubuntu e Windows; [CI #118](https://github.com/Nexus-Evolution-Tech/SAGE-API/actions/runs/32050974301/job/95449990404): `r1-05e-websocket.test.js` 8/8 | ✅ |
+
+### Limitações de evidência
+
+- A guarda do nginx é uma asserção textual separada; conforme a §3.7, ela não é execução do
+  nginx. O proxy Node é a prova real de rewrite/upgrade.
+- Os testes do frontend mockam `socket.io-client`; a conexão, path errado, allowlist e queda/
+  recuperação reais são exercitados pelo cliente Socket.IO real no teste da API. Não há E2E de
+  navegador nesta reconciliação.
+- Os PRs frontend #23/#25 não tinham um check remoto próprio no momento do merge. A prova CI
+  identificável é a execução posterior do [Frontend CI em `2e18e95`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/2e18e95f6097dbae20c494f9a94164f63d4bfa97), descendente de `76f5beb`, que registrou 18 suítes/57 testes e build verde; isso não transforma build em prova de requisito sem os testes nomeados acima.
+- **#93**, **#96** e **#47** continuam pendentes conforme a classificação existente. Este fechamento
+  é apenas R1-06 via R1-05F; não fecha a R1 nem o produto.
+
 ---
 
 ## 0. O que a auditoria mudou no plano
@@ -276,6 +312,9 @@ Acrescente a ela, da auditoria:
 **Contrato de realtime — a release que já mexe em WebSocket é a que conserta** `[+2A-E05/E07/E08]`.
 A segunda auditoria mostrou que o problema não é só de autenticação: **o realtime pode
 simplesmente não estar funcionando.**
+> Atualização de 2026-08-26: os quatro itens abaixo preservam a fotografia histórica do plano.
+> O estado atual de R1-06, reconciliado via R1-05F, está na matriz desta seção no topo do
+> documento; estes checkboxes não reabrem o contrato.
 - [ ] Cliente emite `join`; servidor só escuta `subscribe:acessos|dispositivos|sync|stats`
       (`useWebSocket.js:72-99` × `wsServer.js:59-75`). Protocolo único, versionado
 - [ ] `io(SOCKET_URL)` passa `/backend` como namespace enquanto o nginx espera
