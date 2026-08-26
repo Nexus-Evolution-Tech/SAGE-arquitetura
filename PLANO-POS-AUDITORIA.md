@@ -50,11 +50,35 @@ inteira nem declara o produto terminado antes da validação final.
 - **#47 — smoke/ACL Windows:** permanece como pendência de ambiente a acompanhar. O CI verde
   deste pacote não resolve nem substitui a investigação do problema ambiental.
 
-### Candidatos a fechamento
+### Fechamentos verificáveis após a auditoria individual
 
-Com base apenas na evidência já auditada, ficam indicados como candidatos a fechamento os
-pacotes/issues **#62, #69, #72, #75, #77, #87, #92, #94, #101 e #67**. Esta indicação não marca
-nenhuma issue do GitHub como fechada e não substitui a validação de cada fechamento.
+Os comentários de encerramento das issues abaixo no `SAGE-API` registram o commit/PR, o teste e
+a execução de CI correspondentes. São fechamentos dos recortes/issues, não do épico #87 nem da
+R1 inteira.
+
+| Issue fechada | Evidência registrada no comentário de encerramento |
+|---|---|
+| [#62](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/62) | `0e675ed` (PR #65) e `a1fac67` (PR #68); `test/r1-02a-autorizacao-primitivas.test.js` e `test/r1-02b-barreira-rotas.test.js`; CI `31850588927`/`31851117528` verde. |
+| [#66](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/66) | Decisão/spec `d27fc3b`, implementação `a1fac67`; `test/r1-02b-barreira-rotas.test.js`; CI verde. |
+| [#67](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/67) | `72e4c73` (PR #110); `test/r1-05a-fronteira.test.js`; CI `32042638037` passou `caminhos` e `teste`. |
+| [#69](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/69) | `8d9338c` (R1-03A), `23516c6` (ControlID) e recortes filhos #77/#78/#79/#80; testes e CI registrados nos comentários dos recortes. |
+| [#72](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/72) | `e646e09` (PR #76), `23516c6` (PR #86) e filhos #74/#75/#73; testes nomeados e CI MySQL/Linux registrados nos comentários. |
+| [#75](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/75) | #77/`67b02bf`, #80/`940aba4`, #78/`b2d05f8`, além de `e646e09` e `23516c6`; CI `31881187944`/`31891667793`/`31891373727` verde. |
+| [#77](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/77) | #79/PR #81 em `67b02bf`, #80/PR #82 em `940aba4`; testes de caminhos/transação; CI `31857511513` e `31858725336` verde. |
+| [#92](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/92) | Frontend `2e18e95`; `DadosEscolares.contract.test.js`; Frontend CI `33012672908` passou 18 suítes/57 testes e build. |
+| [#94](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/94) | `fb7c42f` (PR #97); `test/r1-04b1-allowlist.test.js`; CI `31899882365`/`31899389145` passou. |
+| [#101](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/101) | `e75de4a` (PR #104); `test/r1-04d-errors.test.js`; CI `31903262839` passou. |
+
+O [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87) permanece aberto por
+[#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93) (superfície duplicada de Sala),
+[#96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) (política/matriz de
+`qr_code`/`cartao_rfid`) e [#47](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/47)
+(smoke/ACL Windows). Nenhuma dessas pendências está fechada por esta atualização.
+
+As issues [#106](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/106) e
+[#107](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/107) são da R2 e não foram
+iniciadas. A R1 não é produto terminado; o pacote R2-01 aguarda gate ou exceção formal de
+independência.
 
 ### Atualização específica da issue #2 — reconciliação de R1-06 (2026-08-26)
 
@@ -65,6 +89,12 @@ funcional entregue como R1-05F; não há comportamento novo neste pacote documen
 **Resultado: R1-06 fica fechado via R1-05F, documentalmente.** Cada cláusula da §3.7 tem teste
 nomeado e execução CI identificável. O fechamento não fecha a issue automaticamente, não fecha a
 R1 inteira e não declara o produto terminado.
+
+A [issue #2](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/issues/2) foi fechada após o
+[PR #3](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/pull/3): conteúdo em
+[`e9dbeac`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/e9dbeac427681358f227b27df855424efe5f81a8)
+e merge em `main` no commit
+[`19492e6`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/19492e65004761ed6361a936266ebf1b97bfdf61).
 
 As entregas reconciliadas são API [issue #119](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/119) /
 [PR #120](https://github.com/Nexus-Evolution-Tech/SAGE-API/pull/120), merge `b181b704`; frontend

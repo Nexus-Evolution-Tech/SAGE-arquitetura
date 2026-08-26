@@ -112,6 +112,33 @@ com suíte final de 18 suítes/57 testes e build compilado no Windows.
 R1-02, R1-03, R1-04, R1-05 e R1-07 possuem os commits e testes já auditados. Isto registra o
 estado dos pacotes, sem declarar a R1 inteira ou o produto terminados antes da validação final.
 
+### Fechamentos verificáveis após a auditoria individual
+
+Os comentários de encerramento das issues abaixo no `SAGE-API` registram o commit/PR, o teste e
+a execução de CI correspondentes. São fechamentos dos recortes/issues, não do épico #87 nem da
+R1 inteira.
+
+| Issue fechada | Evidência registrada no comentário de encerramento |
+|---|---|
+| [#62](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/62) | `0e675ed` (PR #65) e `a1fac67` (PR #68); testes R1-02A/R1-02B; CI `31850588927`/`31851117528` verde. |
+| [#66](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/66) | Decisão/spec `d27fc3b`, implementação `a1fac67`; `test/r1-02b-barreira-rotas.test.js`; CI verde. |
+| [#67](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/67) | `72e4c73` (PR #110); `test/r1-05a-fronteira.test.js`; CI `32042638037` passou `caminhos` e `teste`. |
+| [#69](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/69) | `8d9338c`, `23516c6` e recortes filhos #77/#78/#79/#80; testes e CI registrados nos comentários dos recortes. |
+| [#72](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/72) | `e646e09`, `23516c6` e filhos #74/#75/#73; testes nomeados e CI registrados nos comentários. |
+| [#75](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/75) | #77/`67b02bf`, #80/`940aba4`, #78/`b2d05f8`; CI `31881187944`/`31891667793`/`31891373727` verde. |
+| [#77](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/77) | #79/PR #81 em `67b02bf`, #80/PR #82 em `940aba4`; testes de caminhos/transação; CI `31857511513`/`31858725336` verde. |
+| [#92](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/92) | Frontend `2e18e95`; `DadosEscolares.contract.test.js`; Frontend CI `33012672908` passou 18 suítes/57 testes e build. |
+| [#94](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/94) | `fb7c42f` (PR #97); `test/r1-04b1-allowlist.test.js`; CI `31899882365`/`31899389145` passou. |
+| [#101](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/101) | `e75de4a` (PR #104); `test/r1-04d-errors.test.js`; CI `31903262839` passou. |
+
+O [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87) permanece aberto por
+[#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93) (superfície duplicada de Sala),
+[#96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) (política/matriz de
+`qr_code`/`cartao_rfid`) e [#47](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/47)
+(smoke/ACL Windows). As issues [#106](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/106)
+e [#107](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/107) são da R2 e não foram
+iniciadas. A R1 não é produto terminado; R2-01 aguarda gate ou exceção formal de independência.
+
 O `AGENTS.md` de `_arquitetura/repo` já foi atualizado no commit
 [`1e43eeb`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/1e43eebb8045b92031575d28cd58fd48878071d7),
 e o espelho em `SAGE-API/AGENTS.md` já existe no commit
@@ -124,8 +151,9 @@ manter os campos em fluxos autorizados, sem restrição global a `ADMIN`, até h
 explícita, testes e documentação. **#47** permanece como smoke/ACL Windows a acompanhar; CI
 verde não equivale à resolução do problema ambiental.
 
-Candidatos a fechamento, somente com a evidência já comprovada: **#62/#69/#72/#75/#77/#87/#92/#94/#101
-e #67**. Nenhuma issue GitHub é fechada por este pacote.
+Os dez fechamentos verificáveis da API são **#62, #66, #67, #69, #72, #75, #77, #92, #94 e
+#101**, conforme a matriz acima. O #87 não está fechado, e nenhuma issue do GitHub é fechada
+automaticamente por esta atualização.
 
 ### Atualização específica da issue #2 — R1-06 reconciliada com R1-05F (2026-08-26)
 
@@ -133,6 +161,12 @@ A fonte normativa é `specs/R1-05-fronteira-e-falha-fechada.md` §3.7. Por decis
 R1-06 é o recorte adicional de fechamento e rastreabilidade do contrato funcional já entregue
 como R1-05F. **R1-06 está fechado documentalmente via R1-05F** porque todos os critérios têm
 teste nomeado e CI identificável; isto não fecha a issue, a R1 inteira ou o produto.
+
+A [issue #2](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/issues/2) foi fechada após o
+[PR #3](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/pull/3): conteúdo em
+[`e9dbeac`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/e9dbeac427681358f227b27df855424efe5f81a8)
+e merge em `main` no commit
+[`19492e6`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/19492e65004761ed6361a936266ebf1b97bfdf61).
 
 As entregas são API [issue #119](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/119) /
 [PR #120](https://github.com/Nexus-Evolution-Tech/SAGE-API/pull/120), merge `b181b704`; frontend
