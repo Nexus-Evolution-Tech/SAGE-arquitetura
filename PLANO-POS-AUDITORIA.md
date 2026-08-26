@@ -11,10 +11,11 @@
 
 ## Estado verificado — fechamento documental da R1 (2026-08-26)
 
-Esta seção atualiza o estado verificável sem apagar o histórico de planejamento abaixo. O
-recorte é documental: não implementa código, não altera testes de aplicação e não fecha a R1
-inteira nem declara o produto terminado. A R1 fica fechada somente no escopo auditado, com as
-pendências classificadas abaixo.
+Esta seção atualiza o estado verificável sem apagar o histórico de planejamento abaixo. Após o
+fechamento auditado da #96 e a integração do PR #9, registra-se a validação final do Arquiteto
+SAGE: a R1 é entregue e defensável somente no escopo auditado, com as pendências classificadas
+abaixo. O recorte é documental: não implementa código, não altera testes de aplicação, não fecha
+a R1 integralmente e não declara o produto terminado.
 
 ### Evidências verificadas
 
@@ -27,8 +28,8 @@ pendências classificadas abaixo.
   terminou verde; a suíte final registrou **18 suítes e 57 testes**, e o build foi compilado no
   Windows.
 - R1-02, R1-03, R1-04, R1-05 e R1-07 possuem os commits e testes dos respectivos pacotes já
-  auditados. Isso é estado verificado desses recortes, não a conclusão da R1: a validação final
-  da release ainda é necessária.
+  auditados. A validação final registrada nesta seção confirma uma R1 entregue e defensável
+  somente nesse escopo auditado, sem concluir a R1 integralmente.
   As referências verificáveis dos testes auditados são: R1-02, SAGE-API PRs #65/#68 e
   `test/r1-02a-autorizacao-primitivas.test.js` / `test/r1-02b-barreira-rotas.test.js`; R1-03,
   PRs #71/#76/#81/#82/#84/#85/#86 e os testes `test/r1-03*.test.js`; R1-04, PRs
@@ -89,16 +90,25 @@ R1 inteira.
 | [#101](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/101) | `e75de4a` (PR #104); `test/r1-04d-errors.test.js`; CI `31903262839` passou. |
 | [#96](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/96) | Matriz [`R1-04-qr-rfid-matriz.md`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/blob/791a37a6955fb3e5210105f0f4909c0cac59ee6e/specs/R1-04-qr-rfid-matriz.md); conteúdo `9f38944`; merge `791a37a`. |
 
-O [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87) permanece aberto até a
-classificação final, atualmente por [#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93)
+O fechamento integral da R1 aguarda a classificação final do [EPIC #87](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/87),
+que permanece aberto, atualmente por [#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93)
 (superfície duplicada de Sala) e [#47](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/47)
 (smoke/ACL Windows). A #96 tem o fechamento documental registrado acima; isso não encerra o
 épico nem a R1 fora do escopo auditado.
 
 As issues [#106](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/106) e
 [#107](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/107) são da R2 e não foram
-iniciadas. A R1 não é produto terminado; o pacote R2-01 permanece não iniciado e aguarda gate
-ou exceção formal de independência.
+iniciadas. A R1 não é produto terminado; o pacote R2-01 permanece não iniciado e bloqueado por
+padrão. Uma exceção só pode ser considerada com matriz de dependências aprovada e evidência
+objetiva de independência dos contratos R1, Sala, QR/RFID, realtime e Windows/ACL; este registro
+não inventa responsável nem prazo.
+
+### Próximo pacote documental
+
+O próximo pacote é a investigação/ADR documental da [#93](https://github.com/Nexus-Evolution-Tech/SAGE-API/issues/93),
+sem código e sem alteração de comportamento público. A issue é o recorte do pacote; a spec é o
+contrato da release. Este pacote não amplia o escopo para código, testes, workflows ou mudança
+de política.
 
 ### Atualização específica da issue #2 — reconciliação de R1-06 (2026-08-26)
 
