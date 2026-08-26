@@ -51,9 +51,6 @@ O conteúdo verificável está no commit
 [`9f38944`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/9f38944acead3ee3b2f73f2d98feb6779f02f62a),
 integrado em `main` pelo merge
 [`791a37a`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/791a37a6955fb3e5210105f0f4909c0cac59ee6e).
-O PR deste pacote não fecha automaticamente a [issue #8](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/issues/8),
-que permanece aberta para revisão.
-
 A decisão registrada é:
 
 - `qr_code` tem endpoint explícito de emissão em `POST /pessoas/gerar_qrcode/:id`, com operação

@@ -123,9 +123,6 @@ O conteúdo verificável está no commit
 [`9f38944`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/9f38944acead3ee3b2f73f2d98feb6779f02f62a),
 integrado em `main` pelo merge
 [`791a37a`](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/commit/791a37a6955fb3e5210105f0f4909c0cac59ee6e).
-O PR deste pacote não fecha automaticamente a [issue #8](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/issues/8),
-que permanece aberta para revisão.
-
 A decisão registrada é:
 
 - `qr_code` tem endpoint explícito de emissão em `POST /pessoas/gerar_qrcode/:id`, com operação
@@ -179,9 +176,8 @@ fechada somente no escopo auditado pela matriz acima: os campos permanecem em fl
 sem restrição global a `ADMIN`, e a decisão não cria política de regeneração ou revogação.
 
 Os onze fechamentos verificáveis da API são **#62, #66, #67, #69, #72, #75, #77, #92, #94,
-#101 e #96**, conforme a matriz acima. O #87 não está fechado, a issue #8 deste repositório
-permanece aberta para revisão, e nenhuma issue do GitHub é fechada automaticamente por esta
-atualização.
+#101 e #96**, conforme a matriz acima. O #87 não está fechado, e nenhuma issue do GitHub é
+fechada automaticamente por esta atualização.
 
 ### Atualização específica da issue #2 — R1-06 reconciliada com R1-05F (2026-08-26)
 
