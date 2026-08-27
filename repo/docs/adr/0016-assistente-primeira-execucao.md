@@ -373,11 +373,10 @@ Há três classes de evidência, que devem ser nomeadas separadamente:
    componente não provam o fluxo E2E de usuário.
 2. **E2E de navegador:** um navegador real, inclusive headless quando continuar usando o
    motor real, abre a aplicação frontend dos commits fixados, interage pelos controles da
-   tela e atravessa frontend, API, banco e simulador da catraca. Não há interceptação que
-   substitua a API ou o banco nesse caminho.
-3. **Hardware:** equipamento físico não faz parte deste pacote. O simulador é a fronteira
-   autorizada para produzir e reler eventos; resultado do simulador não é confirmação de
-   passagem física.
+   tela e atravessa frontend, API e banco somente nas operações de onboarding previstas
+   neste addendum. Não há interceptação que substitua a API ou o banco nesse caminho.
+3. **Presença e hardware:** eventos de presença, simulador da catraca e equipamento físico
+   não fazem parte deste recorte. Nenhum deles é pré-condição ou evidência do E2E.
 
 Um teste só pode ser chamado de E2E R2-02 quando satisfizer a segunda classe e deixar a
 primeira apenas como evidência complementar. Usar HTTP para acelerar uma etapa não permite
@@ -386,27 +385,34 @@ as chamadas também fica fora da definição.
 
 ### 3. Primeiro acesso e retomada lógica
 
-O primeiro acesso é o primeiro evento sintético aceito pelo caminho de presença depois da
-configuração do caso, identificado pelo `log_catraca_id` reservado ao caso. Não é login,
-conclusão do onboarding, clique em botão ou estado de serviço. O resultado exigido é uma
-única `RegistroPresenca` imutável com `origem=CATRACA`, `pessoa_id`, `dispositivo_id`,
-`momento`, `sentido` e `log_catraca_id` válidos. Nenhum horário é estimado e a tela deve
-exibir o registro ou sua pendência real.
+O primeiro acesso, neste recorte, é abrir `/onboarding` em uma instalação limpa, ler o
+estado pela rota `GET /onboarding` e iniciar ou retomar logicamente um passo pela rota
+`POST /onboarding/steps/{step}/resume`. É a primeira interação verificável com o contrato
+do onboarding, não um acesso de presença, login, clique em botão de hardware ou estado de
+serviço.
 
-Durante o ensaio, fechar o navegador depois de um passo persistido deve permitir reabrir a
-aplicação e ler o estado do servidor. Reiniciar o processo ou a máquina entre passos deve
-tratar `EM_EXECUCAO` como resultado desconhecido, reler por identidade estável e retomar o
-primeiro passo não concluído. Repetição, refresh ou retry não pode duplicar escola, conta,
-entidade, evento ou `RegistroPresenca`; incerteza fica parcial/bloqueada para intervenção.
+Este recorte não cria, consulta nem exige `RegistroPresenca`, eventos de presença,
+entidades de domínio, escrita da escola/conta do passo 1 ou controle de hardware. As
+operações frontend/API/banco ficam limitadas à leitura da projeção e à transição lógica
+previstas no Addendum R2-02A. Um evento técnico eventual do harness, usado apenas para
+observar processo ou transporte, não representa primeiro acesso e não pode depender de
+`RegistroPresenca`.
 
-`PRONTO_LOGICO` significa somente que o estado lógico previsto foi persistido. Mesmo que o
-simulador demonstre convergência observada, a interface, o relatório e a evidência devem
-identificar o simulador e não anunciar `PRONTO_LOGICO` ou `CONCLUIDO` como confirmação física.
-Nenhum botão do fluxo pode ser descrito como tendo liberado uma passagem real.
+Durante o ensaio, fechar o navegador depois de uma transição persistida deve permitir
+reabrir a aplicação e ler o estado do servidor. Reiniciar o processo ou a máquina entre
+transições deve tratar `EM_EXECUCAO` como resultado desconhecido, reler por identidade
+estável e retomar o primeiro passo não concluído. Repetição, refresh ou retry não pode
+duplicar o agregado de onboarding nem suas transições; incerteza fica parcial/bloqueada
+para intervenção.
+
+`PRONTO_LOGICO` e `CONCLUIDO`, se aparecerem na projeção ou no relatório deste recorte,
+significam somente estados lógicos do onboarding. Nenhum deles pode ser anunciado como
+confirmação física, e nenhum botão do fluxo pode ser descrito como tendo liberado uma
+passagem real.
 
 ### 4. Dados, dependências e pré-condições de execução
 
-Os fixtures usam somente IDs, timestamps e eventos sintéticos gerados para o caso. É
+Os fixtures usam somente IDs, timestamps, estados e respostas sintéticas gerados para o caso. É
 proibido usar ou publicar nome, CPF, RG, e-mail, telefone, endereço, foto, QR, número de
 cartão, token, senha ou qualquer credencial real. Credencial transitória necessária ao
 login do ensaio deve ser fornecida pelo ambiente, mantida fora do repositório e omitida de
@@ -419,8 +425,8 @@ O par de artefatos precisa ser exatamente:
 
 Uma execução com outro commit, artefato sem origem verificável ou mistura de versões não
 é evidência do E2E R2-02. Antes de iniciar, o pacote futuro deve comprovar: snapshot limpo,
-runtime compatível, banco descartável, sequência de inicialização disponível, simulador
-disponível, aplicação acessível pelo navegador e runner capaz de iniciar navegador real.
+runtime compatível, banco descartável, sequência de inicialização disponível, aplicação
+acessível pelo navegador e runner capaz de iniciar navegador real.
 
 Se o runner de navegador não existir, não iniciar ou não conseguir abrir o navegador, a
 pré-condição falha e o E2E fica **não executado**. Pode-se registrar separadamente o
@@ -440,14 +446,17 @@ por ambiente para todos os itens abaixo:
       como HTTP/contrato quando não houver navegador real.
 - [ ] O runner abre navegador real e o teste navega pela aplicação frontend até o fluxo de
       onboarding; ausência do runner reprova a pré-condição, não gera aprovação parcial.
-- [ ] Os oito passos respeitam a ordem e as pré-condições do ADR-0016; falha, timeout ou
-      resultado desconhecido permanece visível e não libera o passo seguinte.
+- [ ] A abertura de `/onboarding` lê a projeção inicial por `GET /onboarding`, e uma chamada
+      válida a `POST /onboarding/steps/{step}/resume` inicia/retoma somente o passo elegível.
+- [ ] Falha, timeout, passo fora de ordem ou resultado desconhecido permanece visível e não
+      libera outra transição; nenhuma entidade de domínio ou escrita do passo 1 é exigida.
 - [ ] Fechar o navegador e reiniciar processo/máquina em pontos definidos permite retomar
       do primeiro passo não concluído, sem duplicação após retry ou refresh.
-- [ ] O simulador fornece um evento sintético; o primeiro acesso resulta em exatamente uma
-      `RegistroPresenca` imutável com os campos obrigatórios e sem horário estimado.
-- [ ] A tela mostra o acesso e distingue persistência lógica, estado desejado e estado
-      observado no simulador; nenhuma mensagem atribui confirmação ou atuação física.
+- [ ] O caso não cria, consulta nem exige `RegistroPresenca`, evento de presença, simulador
+      da catraca ou controle de hardware; eventual evento técnico do harness não é primeiro
+      acesso e não depende de `RegistroPresenca`.
+- [ ] A projeção e a interface distinguem o estado lógico do onboarding; `PRONTO_LOGICO` e
+      `CONCLUIDO`, se exibidos, não são apresentados como confirmação física.
 - [ ] A coleta de logs, screenshots e relatório não contém PII, credencial, token ou payload
       cru; o caso pode ser reproduzido somente com dados sintéticos.
 - [ ] O relatório registra commits, ambiente, runtime, início disponível, testes executados,
