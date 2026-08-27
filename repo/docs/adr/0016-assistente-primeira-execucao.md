@@ -257,25 +257,27 @@ escopo. Uma restrição única e a criação concorrente devem preservar esse in
 ### Projeção pública e controle de concorrência
 
 O sucesso de `GET /onboarding` retorna somente a projeção abaixo. A ordem de
-`passos_concluidos` é a ordem normativa do ADR; não há IDs de entidades, timestamps,
+`completed_steps` é a ordem normativa do ADR; não há IDs de entidades, timestamps,
 descoberta, mensagens de negócio ou qualquer outro campo nessa resposta.
 
 ```json
 {
   "status": "NAO_INICIADO",
-  "passo_atual": null,
-  "passos_concluidos": [],
-  "proximo_passo": "ESCOLA_CONTA_ADMINISTRADOR",
-  "versao": 0
+  "current_step": null,
+  "completed_steps": [],
+  "next_step": "ESCOLA_CONTA_ADMINISTRADOR",
+  "version": 0
 }
 ```
 
-`versao` é um inteiro monotônico, começa em `0` e pertence ao agregado. Cada transição
+`version` é um inteiro monotônico, começa em `0` e pertence ao agregado. Cada transição
 persistida incrementa-o uma vez, na mesma transação; leitura e retomada idempotente não o
-incrementam. Uma mutação deve carregar `If-Match: "<versao>"`. Cabeçalho ausente ou malformado
-é pré-condição não atendida; versão obsoleta não pode sobrescrever o estado. Se a requisição
+incrementam. Uma mutação deve carregar `If-Match` com o valor do campo normativo `version`
+lido pelo cliente; por exemplo, `version: 0` exige `If-Match: "0"`. O valor é sempre a
+representação decimal entre aspas do mesmo `version`, nunca outro contador. Cabeçalho ausente
+ou malformado é pré-condição não atendida; versão obsoleta não pode sobrescrever o estado. Se a requisição
 repetida já estiver refletida no estado persistido, retorna a projeção vigente sem nova
-escrita; caso contrário, a concorrência é rejeitada sem alterar `versao`.
+escrita; caso contrário, a concorrência é rejeitada sem alterar `version`.
 
 ### Rotas e identificadores de passo
 
