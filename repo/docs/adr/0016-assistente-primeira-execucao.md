@@ -239,3 +239,83 @@ O próximo pacote deve apresentar, com testes nomeados e dados sintéticos:
 - [ADR-0006 — Bloqueio e controle administrativo](./0006-bloqueio-e-controle-administrativo.md)
 - [ADR-0011 — Atualização blue-green](./0011-atualizacao-blue-green.md)
 - [Issue #16](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/issues/16)
+
+## Addendum R2-02A — contrato do estado do onboarding
+
+- **Data:** 2026-08-27
+- **Pacote:** R2-02A — [issue #18](https://github.com/Nexus-Evolution-Tech/SAGE-arquitetura/issues/18)
+- **Base:** ADR-0016 integrado em `22a6093`
+- **Natureza:** decisão documental para o pacote de persistência, leitura e retomada;
+  não inicia implementação.
+
+Este addendum detalha o contrato da seção 2 sem substituir suas decisões. O agregado
+`OnboardingState` será persistido em `onboarding_state`, com uma única instância para o
+contexto da instalação e sua escola. A identidade desse contexto é derivada pelo servidor;
+`school_id` não é aceito em rota, query ou corpo, nem serve para o cliente escolher outro
+escopo. Uma restrição única e a criação concorrente devem preservar esse invariante.
+
+### Projeção pública e controle de concorrência
+
+O sucesso de `GET /onboarding` retorna somente a projeção abaixo. A ordem de
+`passos_concluidos` é a ordem normativa do ADR; não há IDs de entidades, timestamps,
+descoberta, mensagens de negócio ou qualquer outro campo nessa resposta.
+
+```json
+{
+  "status": "NAO_INICIADO",
+  "passo_atual": null,
+  "passos_concluidos": [],
+  "proximo_passo": "ESCOLA_CONTA_ADMINISTRADOR",
+  "versao": 0
+}
+```
+
+`versao` é um inteiro monotônico, começa em `0` e pertence ao agregado. Cada transição
+persistida incrementa-o uma vez, na mesma transação; leitura e retomada idempotente não o
+incrementam. Uma mutação deve carregar `If-Match: "<versao>"`. Cabeçalho ausente ou malformado
+é pré-condição não atendida; versão obsoleta não pode sobrescrever o estado. Se a requisição
+repetida já estiver refletida no estado persistido, retorna a projeção vigente sem nova
+escrita; caso contrário, a concorrência é rejeitada sem alterar `versao`.
+
+### Rotas e identificadores de passo
+
+`GET /onboarding` lê o agregado do escopo da instalação e também retorna `NAO_INICIADO`.
+`POST /onboarding/steps/{step}/resume` não recebe payload de negócio: o caminho identifica
+o passo e a resposta bem-sucedida é a mesma projeção de estado. Os identificadores estáveis
+de `{step}` e seus valores na projeção são:
+
+| Ordem | `{step}` | Valor do estado |
+|---:|---|---|
+| 1 | `escola-conta-administrador` | `ESCOLA_CONTA_ADMINISTRADOR` |
+| 2 | `area` | `AREA` |
+| 3 | `catraca` | `CATRACA` |
+| 4 | `curso` | `CURSO` |
+| 5 | `turma` | `TURMA` |
+| 6 | `empresa` | `EMPRESA` |
+| 7 | `sala` | `SALA` |
+| 8 | `pessoas` | `PESSOAS` |
+
+O `resume` só aceita o passo atual retentável ou o próximo passo quando todos os seus
+pré-requisitos estiverem concluídos. No estado inicial, somente o passo 1 é elegível e a
+primeira chamada o leva a `EM_ANDAMENTO`. Repetir o mesmo passo não cria outra instância,
+não duplica entidade e retorna o estado vigente. Passo inválido, fora de ordem ou sem
+pré-condição é rejeitado; nenhuma transição rejeitada altera o agregado.
+
+### Autorização, dados e fronteiras do R2-02A
+
+As duas rotas exigem declaração explícita de autorização conforme a ACL da R1; não criam
+papel novo. O fluxo de configuração é administrativo e não concede acesso de configuração
+à `SECRETARIA`. Não existe endpoint anônimo presumido neste contrato: o uso de
+`preAutenticacao()` para o primeiro acesso sem credencial precisa de decisão própria antes
+de ser ligado a qualquer rota.
+
+O estado não contém PII, credenciais, segredos, payloads crus ou dados da catraca. O
+`resume` deste pacote não escreve `UnidadeEscolar`, `Usuario` ou qualquer outra entidade de
+negócio, não dispara descoberta, sincronização nem o botão de liberar acesso. R2-02A cobre
+somente a persistência de `OnboardingState`, sua leitura e a transição de início/retomada;
+a escrita da escola e da conta do passo 1 fica para R2-02B.
+
+Erros de autenticação e autorização seguem R1; erros de pré-condição, passo ou transição
+seguem o envelope e os códigos estáveis já adotados, sem revelar escopo ou dado sensível.
+Falha ou rejeição nunca retorna sucesso. O próximo pacote de API só começa depois que este
+addendum estiver integrado.
