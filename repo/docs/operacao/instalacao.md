@@ -76,55 +76,90 @@ Propriedades exigidas:
 
 ---
 
-## 4. O aviso do Windows antes de instalar
+## 4. Download e primeira execução: SmartScreen
 
-O SAGE **não tem certificado de assinatura de código** — ver
-[ADR-0002](../adr/0002-assinatura-signpath.md). Consequência: ao executar o instalador, o
-Windows mostra a tela azul "O Windows protegeu o seu PC".
+O instalador continua **sem assinatura Authenticode**, conforme
+[ADR-0002](../adr/0002-assinatura-signpath.md). Isso explica o alerta, mas não prova que o
+arquivo é seguro e não autoriza prometer que alertas desaparecerão no futuro. A distribuição
+permanece assim até decisão posterior, mesmo que uma rota de assinatura esteja em avaliação.
 
-Isso é esperado e precisa ser tratado com transparência, não escondido.
+### Antes de abrir o arquivo
 
-### Como a página de download e o guia impresso explicam
+1. Baixe somente da página oficial. Confira versão, commit de origem e SHA-256 publicados.
+2. Se o navegador bloquear ou marcar o download, não abra nem desative o Defender. Primeiro
+   confirme a página oficial e o hash; se não houver hash publicado ou o arquivo estiver
+   incompleto, mantenha-o bloqueado e procure o suporte.
+3. Para conferir o arquivo baixado, o suporte pode orientar este comando no PowerShell:
 
-O texto abaixo é o modelo. Ele nunca diz "ignore o aviso" — diz o que o aviso significa e
-por que aparece neste caso:
+   ```powershell
+   Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\SAGE-Setup.exe"
+   ```
 
-> **Você vai ver um aviso do Windows. Isso é normal, e aqui está o porquê.**
->
-> O Windows avisa sempre que um programa não tem um "certificado digital" — uma espécie de
-> selo pago que empresas compram para identificar seus programas. O SAGE é mantido sem fins
-> lucrativos e não tem esse certificado, então o aviso aparece.
->
-> O aviso não significa que o programa tenha problema. Significa que o Windows não conhece
-> quem o publicou.
->
-> **Como continuar:**
-> 1. Clique em **Mais informações**
-> 2. Clique em **Executar assim mesmo**
->
-> **Se quiser conferir que o arquivo é o original**, compare o código abaixo com o do
-> arquivo que você baixou (clique com o botão direito → Propriedades → Hashes):
->
-> `SHA-256: <publicado a cada versão>`
+   O resultado deve ser **idêntico** ao SHA-256 da página, sem aceitar “parecido”. Se não
+   coincidir, não execute: preserve a versão e o hash observado para o suporte.
 
-Acompanhado da captura de tela real, com seta indicando onde clicar.
+### Cenário A — o navegador alerta ou bloqueia o download
 
-### Obrigações que isso cria
+O alerta pode ser de reputação, origem da internet ou política da escola. A pessoa não deve
+contorná-lo às cegas. Com origem e hash conferidos, a opção do navegador para conservar o
+arquivo só deve ser usada se a política da escola permitir; não altere política, antivírus,
+registro ou configurações de segurança. Se a opção não existir, ou se a escola bloquear o
+arquivo, pare e envie ao suporte a versão, os dois hashes e o código de instalação, sem
+enviar nome, documento, senha ou token.
 
-- O CI **publica o SHA-256** de todo artefato de release. Sem assinatura, o hash é a única
-  verificação de integridade que existe — deixa de ser opcional
-- A captura de tela precisa ser da versão do Windows que a escola usa. Print de outra
-  versão confunde mais do que ajuda
-- **Verifique com a escola se existe política de TI que bloqueia executável não assinado.**
-  Se existir, esta decisão precisa ser revista antes da entrega, não durante
-- O canal de atualização automática continua exigindo assinatura Ed25519 própria
-  ([ADR-0011](../adr/0011-atualizacao-blue-green.md)). São camadas diferentes: não ter
-  Authenticode não autoriza aceitar pacote não verificado
+### Cenário B — “O Windows protegeu o seu PC” ao executar
 
-### Limitação registrada
+Mensagem para a pessoa não técnica:
 
-Isto é estado temporário, não final. Reavaliar quando houver orçamento para certificado, ou
-quando o repositório puder voltar a ser público e se qualificar ao SignPath Foundation.
+> O Windows mostrou este aviso porque o instalador atual não tem assinatura de código.
+> Isso não confirma nem descarta um problema. Confira a página oficial e compare o
+> SHA-256 antes de continuar. Se o código não for idêntico, não execute e fale com o
+> suporte.
+
+Depois de o hash coincidir e a política da escola permitir a instalação:
+
+1. clique em **Mais informações**;
+2. confira que está usando o arquivo e a versão esperados;
+3. clique em **Executar assim mesmo** e depois aprove o UAC uma vez.
+
+Se **Executar assim mesmo** não aparecer, se o UAC for negado ou se a mensagem mudar, não
+desative a proteção e não tente outro arquivo: pare e acione o suporte. A captura de tela
+real ainda é pendência; só será incorporada após captura e validação na versão de Windows
+usada pela escola.
+
+### Cenário C — política, hash ou validação indisponível
+
+Política de TI que bloqueie binário não assinado, hash ausente/divergente, página oficial
+indisponível ou serviço de validação sem resposta são motivos para **não publicar, não
+executar e não recomendar contorno**. O suporte registra a versão, commit, execução de
+build, hash publicado/observado e código de instalação. Não se registra dado pessoal.
+
+### Suporte, rollback e incidente
+
+- **Falha na instalação:** o ledger desfaz as etapas na ordem inversa. Em upgrade, a versão
+  anterior permanece selecionável; `dados/`, `config/` e `logs/` nunca são removidos pelo
+  rollback. A regra de troca de versão é a do [ADR-0011](../adr/0011-atualizacao-blue-green.md).
+- **Artefato suspeito após publicação:** bloquear novos downloads e atualizações, conservar
+  o manifesto e a evidência rastreável, avisar o mantenedor e só liberar substituto depois
+  de verificar novamente origem, hash e assinatura exigida. Não apagar instalações ou
+  dados automaticamente.
+- **Assinatura futura revogada ou validação indisponível:** fail-closed para publicação e
+  promoção. O status do artefato já publicado fica pendente de análise; não se declara que
+  ele é válido nem se instrui sua execução. O canal automático continua aceitando somente
+  o JSON com Ed25519 válido, independentemente do Authenticode do instalador.
+
+### Estado das evidências
+
+- **Fato versionado:** ADR-0002 mantém a distribuição sem Authenticode; ADR-0011 mantém a
+  exigência Ed25519 para atualização. Não há certificado, pedido ao SignPath, resposta da
+  escola, screenshot real ou run de CI comprovando assinatura neste repositório.
+- **Decisão deste runbook:** exigir origem, SHA-256 e a política de fail-closed; nunca dizer
+  para ignorar o alerta e nunca prometer ausência de alertas.
+- **Pendente/owner:** dono do produto deve obter a política de TI da escola e a evidência
+  do provedor/rota de assinatura; o Engenheiro Pleno deve executar a matriz operacional.
+- **Ainda não validado:** download e execução em cada Windows/navegador da escola, hash
+  divergente, bloqueio por política, indisponibilidade de validação, incidente pós-publicação,
+  rollback e compreensão da mensagem por pessoa não técnica.
 
 ---
 
