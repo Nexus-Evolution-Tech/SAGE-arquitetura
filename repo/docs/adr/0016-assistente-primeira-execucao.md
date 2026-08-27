@@ -174,6 +174,12 @@ evidências satisfeitos.
 
 ## 4. Critério verificável de máquina limpa e evidência
 
+> **Classificação para o E2E R2-02:** a lista histórica abaixo preserva o critério mais
+> amplo deste ADR, mas não é critério de aceite nem evidência do pacote E2E R2-02. Em
+> particular, `RegistroPresenca`, `log_catraca_id`, simulador, eventos ou atravessamento de
+> presença e validação de hardware ficam fora deste E2E e pertencem exclusivamente a um
+> futuro pacote separado de presença/hardware. A fronteira do E2E está no addendum ao final.
+
 O critério futuro de máquina limpa é um snapshot descartável, sem instalação SAGE
 anterior, sem serviços `SAGEAPI`/`SAGEMySQL`, sem runtime, dados, configuração ou logs
 anteriores. Nesse snapshot, o teste deve:
@@ -216,6 +222,11 @@ E2E executado.
 
 ## 6. Pendências e evidências do próximo pacote de API
 
+> **Classificação para o E2E R2-02:** esta seção registra pendências do ADR-base e não
+> redefine o aceite do E2E. Toda referência a `RegistroPresenca`, `log_catraca_id`,
+> simulador, evento/atravessamento de presença ou validação de hardware é evidência de um
+> futuro pacote separado de presença/hardware, nunca deste E2E de onboarding.
+
 O próximo pacote deve apresentar, com testes nomeados e dados sintéticos:
 
 - schema/endpoint do agregado, enumerações, concorrência e orçamento de retry;
@@ -224,9 +235,11 @@ O próximo pacote deve apresentar, com testes nomeados e dados sintéticos:
 - fronteiras transacionais locais, estados parciais e retomada após crash;
 - integração do `networkDiscoveryService`, prazo `/24`, timeout, seleção e erros;
 - diferenciação testável entre `PRONTO_LOGICO`, estado desejado e estado observado;
-- sincronização idempotente contra simulador, sem alegar confirmação de hardware real;
+- sincronização idempotente contra simulador, sem alegar confirmação de hardware real
+  (pacote separado de presença/hardware, fora do E2E R2-02);
 - teste de redação que rejeite PII, credenciais, tokens e payloads crus em estado/log; e
-- evidência posterior do E2E de máquina limpa até o primeiro `RegistroPresenca`.
+- evidência posterior do pacote separado de presença/hardware até o primeiro
+  `RegistroPresenca`, não do E2E R2-02.
 
 ## Referências
 
@@ -332,8 +345,9 @@ addendum estiver integrado.
   ou disponibilidade de runner.
 
 Este addendum não altera a ordem do onboarding, os estados ou as fronteiras do ADR-0016 e
-do Addendum R2-02A. Ele fixa a evidência mínima para a promessa do roadmap: sair de uma
-máquina limpa e chegar ao primeiro acesso registrado, com retomada lógica demonstrável.
+do Addendum R2-02A. Ele fixa a evidência mínima para a fronteira E2E: partir de uma máquina
+limpa e alcançar o estado lógico de onboarding após `GET /onboarding` e
+`POST /onboarding/steps/{step}/resume`, com retomada lógica demonstrável.
 
 ### 1. Máquina limpa: definição operacional
 
