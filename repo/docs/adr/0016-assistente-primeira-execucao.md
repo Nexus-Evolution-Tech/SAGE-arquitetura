@@ -174,6 +174,12 @@ evidências satisfeitos.
 
 ## 4. Critério verificável de máquina limpa e evidência
 
+> **Classificação para o E2E R2-02:** a lista histórica abaixo preserva o critério mais
+> amplo deste ADR, mas não é critério de aceite nem evidência do pacote E2E R2-02. Em
+> particular, `RegistroPresenca`, `log_catraca_id`, simulador, eventos ou atravessamento de
+> presença e validação de hardware ficam fora deste E2E e pertencem exclusivamente a um
+> futuro pacote separado de presença/hardware. A fronteira do E2E está no addendum ao final.
+
 O critério futuro de máquina limpa é um snapshot descartável, sem instalação SAGE
 anterior, sem serviços `SAGEAPI`/`SAGEMySQL`, sem runtime, dados, configuração ou logs
 anteriores. Nesse snapshot, o teste deve:
@@ -216,6 +222,11 @@ E2E executado.
 
 ## 6. Pendências e evidências do próximo pacote de API
 
+> **Classificação para o E2E R2-02:** esta seção registra pendências do ADR-base e não
+> redefine o aceite do E2E. Toda referência a `RegistroPresenca`, `log_catraca_id`,
+> simulador, evento/atravessamento de presença ou validação de hardware é evidência de um
+> futuro pacote separado de presença/hardware, nunca deste E2E de onboarding.
+
 O próximo pacote deve apresentar, com testes nomeados e dados sintéticos:
 
 - schema/endpoint do agregado, enumerações, concorrência e orçamento de retry;
@@ -224,9 +235,11 @@ O próximo pacote deve apresentar, com testes nomeados e dados sintéticos:
 - fronteiras transacionais locais, estados parciais e retomada após crash;
 - integração do `networkDiscoveryService`, prazo `/24`, timeout, seleção e erros;
 - diferenciação testável entre `PRONTO_LOGICO`, estado desejado e estado observado;
-- sincronização idempotente contra simulador, sem alegar confirmação de hardware real;
+- sincronização idempotente contra simulador, sem alegar confirmação de hardware real
+  (pacote separado de presença/hardware, fora do E2E R2-02);
 - teste de redação que rejeite PII, credenciais, tokens e payloads crus em estado/log; e
-- evidência posterior do E2E de máquina limpa até o primeiro `RegistroPresenca`.
+- evidência posterior do pacote separado de presença/hardware até o primeiro
+  `RegistroPresenca`, não do E2E R2-02.
 
 ## Referências
 
@@ -321,3 +334,149 @@ Erros de autenticação e autorização seguem R1; erros de pré-condição, pas
 seguem o envelope e os códigos estáveis já adotados, sem revelar escopo ou dado sensível.
 Falha ou rejeição nunca retorna sucesso. O próximo pacote de API só começa depois que este
 addendum estiver integrado.
+
+## Addendum R2-02E2E — fronteira verificável do teste de ponta a ponta
+
+- **Data:** 2026-08-27
+- **Pacote:** pré-condição documental do E2E R2-02
+- **Base:** ADR-0016 e Addendum R2-02A integrados em `abf87b0`
+- **Dependências exatas:** frontend `bf33451` e API `6a69f43`
+- **Natureza:** define o que o futuro pacote deve provar; não declara execução, aprovação
+  ou disponibilidade de runner.
+
+Este addendum não altera a ordem do onboarding, os estados ou as fronteiras do ADR-0016 e
+do Addendum R2-02A. Ele fixa a evidência mínima para a fronteira E2E: partir de uma máquina
+limpa e alcançar o estado lógico de onboarding após `GET /onboarding` e
+`POST /onboarding/steps/{step}/resume`, com retomada lógica demonstrável.
+
+### 1. Máquina limpa: definição operacional
+
+Máquina limpa é um snapshot descartável de um sistema operacional suportado, capturado
+antes de qualquer instalação ou execução do SAGE. O snapshot não pode conter instalação,
+release, banco, dados, configuração, logs, processo ou serviço residual do SAGE. Restaurar
+o snapshot deve remover toda evidência gerada pelo ensaio; a execução não reutiliza estado
+de outro caso.
+
+| Ambiente | Pré-condição verificável | Runtime e inicialização autorizados |
+|---|---|---|
+| Ubuntu | VM/snapshot descartável; nenhum processo, diretório de dados, banco ou log do caso anterior | Node.js 24 e MySQL 8.4, usando a sequência já documentada no `repo/README.md` |
+| Windows | VM/snapshot descartável Windows 10/11 x64; nenhuma instalação ou serviço SAGE anterior | instalador/runtime empacotado conforme os ADRs e o runbook de instalação; não usar Node global para o produto instalado |
+
+No Ubuntu, a sequência de desenvolvimento já existente é `npm ci`, `cp .env.example .env`,
+`npm run setup:db` e `npm run dev`. Os comandos de teste já existentes são
+`npm run test:db:setup`, `npm test` e `npm run test:redacao`. Eles são referência do
+runtime/API atual, não novos comandos deste addendum. O ensaio não pode substituir `npm ci`
+por `npm install`.
+
+No Windows, o E2E de instalação usa o `.exe` e o runtime fixo do release conforme
+`docs/operacao/instalacao.md` e ADR-0004; o produto não passa a depender do Node instalado
+no sistema. Este documento não inventa equivalente PowerShell, script de navegador ou
+comando de instalação. Se o pacote futuro precisar de um entrypoint não documentado, ele
+deve especificá-lo e obter revisão antes da execução.
+
+Em ambos os ambientes, o banco e os diretórios de dados do caso devem ser descartáveis.
+Qualquer variável necessária para inicialização recebe valor sintético e efêmero pelo
+harness; não se copia `.env` real nem se registra seu conteúdo na evidência.
+
+### 2. Navegador real, HTTP e significado de E2E
+
+Há três classes de evidência, que devem ser nomeadas separadamente:
+
+1. **HTTP/contrato:** chamadas diretas às rotas da API, mesmo que atravessem o servidor
+   real, são testes de API/integração. `curl`, cliente HTTP, mocks de navegador ou teste de
+   componente não provam o fluxo E2E de usuário.
+2. **E2E de navegador:** um navegador real, inclusive headless quando continuar usando o
+   motor real, abre a aplicação frontend dos commits fixados, interage pelos controles da
+   tela e atravessa frontend, API e banco somente nas operações de onboarding previstas
+   neste addendum. Não há interceptação que substitua a API ou o banco nesse caminho.
+3. **Presença e hardware:** eventos de presença, simulador da catraca e equipamento físico
+   não fazem parte deste recorte. Nenhum deles é pré-condição ou evidência do E2E.
+
+Um teste só pode ser chamado de E2E R2-02 quando satisfizer a segunda classe e deixar a
+primeira apenas como evidência complementar. Usar HTTP para acelerar uma etapa não permite
+apresentar o conjunto como E2E. Automação que apenas renderiza DOM, usa jsdom ou intercepta
+as chamadas também fica fora da definição.
+
+### 3. Primeiro acesso e retomada lógica
+
+O primeiro acesso, neste recorte, é abrir `/onboarding` em uma instalação limpa, ler o
+estado pela rota `GET /onboarding` e iniciar ou retomar logicamente um passo pela rota
+`POST /onboarding/steps/{step}/resume`. É a primeira interação verificável com o contrato
+do onboarding, não um acesso de presença, login, clique em botão de hardware ou estado de
+serviço.
+
+Este recorte não cria, consulta nem exige `RegistroPresenca`, eventos de presença,
+entidades de domínio, escrita da escola/conta do passo 1 ou controle de hardware. As
+operações frontend/API/banco ficam limitadas à leitura da projeção e à transição lógica
+previstas no Addendum R2-02A. Um evento técnico eventual do harness, usado apenas para
+observar processo ou transporte, não representa primeiro acesso e não pode depender de
+`RegistroPresenca`.
+
+Durante o ensaio, fechar o navegador depois de uma transição persistida deve permitir
+reabrir a aplicação e ler o estado do servidor. Reiniciar o processo ou a máquina entre
+transições deve tratar `EM_EXECUCAO` como resultado desconhecido, reler por identidade
+estável e retomar o primeiro passo não concluído. Repetição, refresh ou retry não pode
+duplicar o agregado de onboarding nem suas transições; incerteza fica parcial/bloqueada
+para intervenção.
+
+`PRONTO_LOGICO` e `CONCLUIDO`, se aparecerem na projeção ou no relatório deste recorte,
+significam somente estados lógicos do onboarding. Nenhum deles pode ser anunciado como
+confirmação física, e nenhum botão do fluxo pode ser descrito como tendo liberado uma
+passagem real.
+
+### 4. Dados, dependências e pré-condições de execução
+
+Os fixtures usam somente IDs, timestamps, estados e respostas sintéticas gerados para o caso. É
+proibido usar ou publicar nome, CPF, RG, e-mail, telefone, endereço, foto, QR, número de
+cartão, token, senha ou qualquer credencial real. Credencial transitória necessária ao
+login do ensaio deve ser fornecida pelo ambiente, mantida fora do repositório e omitida de
+logs, screenshots, vídeos e relatórios.
+
+O par de artefatos precisa ser exatamente:
+
+- frontend [`bf33451`](https://github.com/Nexus-Evolution-Tech/SAGE/commit/bf33451);
+- API [`6a69f43`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/6a69f43).
+
+Uma execução com outro commit, artefato sem origem verificável ou mistura de versões não
+é evidência do E2E R2-02. Antes de iniciar, o pacote futuro deve comprovar: snapshot limpo,
+runtime compatível, banco descartável, sequência de inicialização disponível, aplicação
+acessível pelo navegador e runner capaz de iniciar navegador real.
+
+Se o runner de navegador não existir, não iniciar ou não conseguir abrir o navegador, a
+pré-condição falha e o E2E fica **não executado**. Pode-se registrar separadamente o
+resultado dos testes HTTP/contrato que forem possíveis, mas não converter isso em E2E verde,
+nem avançar o status por inferência, nem instalar um comando não previsto neste documento.
+O pacote deve relatar a ausência do runner e parar a conclusão de navegador até que a
+dependência seja especificada, instalada de forma revisada e repetida nos dois ambientes.
+
+### 5. Critérios de aceite do pacote E2E R2-02
+
+O pacote futuro só é aceito quando apresentar evidência reproduzível, sanitizada e separada
+por ambiente para todos os itens abaixo:
+
+- [ ] Ubuntu e Windows iniciam a mesma dupla de commits, cada qual a partir de snapshot
+      limpo, usando somente entrypoints/runtime existentes ou previamente revisados.
+- [ ] A API passa sua preparação e testes existentes; seus resultados são classificados
+      como HTTP/contrato quando não houver navegador real.
+- [ ] O runner abre navegador real e o teste navega pela aplicação frontend até o fluxo de
+      onboarding; ausência do runner reprova a pré-condição, não gera aprovação parcial.
+- [ ] A abertura de `/onboarding` lê a projeção inicial por `GET /onboarding`, e uma chamada
+      válida a `POST /onboarding/steps/{step}/resume` inicia/retoma somente o passo elegível.
+- [ ] Falha, timeout, passo fora de ordem ou resultado desconhecido permanece visível e não
+      libera outra transição; nenhuma entidade de domínio ou escrita do passo 1 é exigida.
+- [ ] Fechar o navegador e reiniciar processo/máquina em pontos definidos permite retomar
+      do primeiro passo não concluído, sem duplicação após retry ou refresh.
+- [ ] O caso não cria, consulta nem exige `RegistroPresenca`, evento de presença, simulador
+      da catraca ou controle de hardware; eventual evento técnico do harness não é primeiro
+      acesso e não depende de `RegistroPresenca`.
+- [ ] A projeção e a interface distinguem o estado lógico do onboarding; `PRONTO_LOGICO` e
+      `CONCLUIDO`, se exibidos, não são apresentados como confirmação física.
+- [ ] A coleta de logs, screenshots e relatório não contém PII, credencial, token ou payload
+      cru; o caso pode ser reproduzido somente com dados sintéticos.
+- [ ] O relatório registra commits, ambiente, runtime, início disponível, testes executados,
+      testes não executados e causa objetiva de qualquer falha. Sem evidência de navegador,
+      o pacote permanece não concluído.
+
+Este addendum é pré-condição de execução e revisão do pacote E2E; não é evidência de que o
+E2E já tenha rodado e não substitui validação posterior em hardware físico, que exigiria
+pacote e decisão próprios.
