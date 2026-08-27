@@ -346,12 +346,12 @@ addendum estiver integrado.
 
 Este addendum não altera a ordem do onboarding, os estados ou as fronteiras do ADR-0016 e
 do Addendum R2-02A. Ele fixa a evidência mínima para a fronteira E2E: partir de uma máquina
-limpa e alcançar o estado lógico de onboarding após `GET /onboarding` e
+Windows 11 x64 limpa e alcançar o estado lógico de onboarding após `GET /onboarding` e
 `POST /onboarding/steps/{step}/resume`, com retomada lógica demonstrável.
 
 ### 1. Máquina limpa: definição operacional
 
-Máquina limpa é um snapshot descartável de um sistema operacional suportado, capturado
+Máquina limpa é um snapshot descartável de Windows 11 x64, capturado
 antes de qualquer instalação ou execução do SAGE. O snapshot não pode conter instalação,
 release, banco, dados, configuração, logs, processo ou serviço residual do SAGE. Restaurar
 o snapshot deve remover toda evidência gerada pelo ensaio; a execução não reutiliza estado
@@ -359,24 +359,19 @@ de outro caso.
 
 | Ambiente | Pré-condição verificável | Runtime e inicialização autorizados |
 |---|---|---|
-| Ubuntu | VM/snapshot descartável; nenhum processo, diretório de dados, banco ou log do caso anterior | Node.js 24 e MySQL 8.4, usando a sequência já documentada no `repo/README.md` |
-| Windows | VM/snapshot descartável Windows 10/11 x64; nenhuma instalação ou serviço SAGE anterior | instalador/runtime empacotado conforme os ADRs e o runbook de instalação; não usar Node global para o produto instalado |
+| Windows 11 x64 | VM/snapshot descartável; nenhuma instalação, serviço SAGE, processo, diretório de dados, banco ou log do caso anterior | instalador/runtime empacotado conforme os ADRs e o runbook de instalação; não usar Node global para o produto instalado |
 
-No Ubuntu, a sequência de desenvolvimento já existente é `npm ci`, `cp .env.example .env`,
-`npm run setup:db` e `npm run dev`. Os comandos de teste já existentes são
-`npm run test:db:setup`, `npm test` e `npm run test:redacao`. Eles são referência do
-runtime/API atual, não novos comandos deste addendum. O ensaio não pode substituir `npm ci`
-por `npm install`.
-
-No Windows, o E2E de instalação usa o `.exe` e o runtime fixo do release conforme
+No Windows 11 x64, o E2E de instalação usa o `.exe` e o runtime fixo do release conforme
 `docs/operacao/instalacao.md` e ADR-0004; o produto não passa a depender do Node instalado
 no sistema. Este documento não inventa equivalente PowerShell, script de navegador ou
 comando de instalação. Se o pacote futuro precisar de um entrypoint não documentado, ele
 deve especificá-lo e obter revisão antes da execução.
 
-Em ambos os ambientes, o banco e os diretórios de dados do caso devem ser descartáveis.
+No Windows 11 x64, o banco e os diretórios de dados do caso devem ser descartáveis.
 Qualquer variável necessária para inicialização recebe valor sintético e efêmero pelo
-harness; não se copia `.env` real nem se registra seu conteúdo na evidência.
+harness; não se copia `.env` real nem se registra seu conteúdo na evidência. Ubuntu é N/A
+neste ciclo: não é executado, não é sucesso nem falha, não compõe cobertura parcial e não
+produz evidência.
 
 ### 2. Navegador real, HTTP e significado de E2E
 
@@ -385,16 +380,17 @@ Há três classes de evidência, que devem ser nomeadas separadamente:
 1. **HTTP/contrato:** chamadas diretas às rotas da API, mesmo que atravessem o servidor
    real, são testes de API/integração. `curl`, cliente HTTP, mocks de navegador ou teste de
    componente não provam o fluxo E2E de usuário.
-2. **E2E de navegador:** um navegador real, inclusive headless quando continuar usando o
-   motor real, abre a aplicação frontend dos commits fixados, interage pelos controles da
-   tela e atravessa frontend, API e banco somente nas operações de onboarding previstas
-   neste addendum. Não há interceptação que substitua a API ou o banco nesse caminho.
+2. **E2E de navegador:** um Chromium real, inclusive headless quando continuar usando o
+   motor real, abre somente a aplicação frontend local dos commits fixados, interage pelos
+   controles da tela e atravessa os processos locais de frontend e API, MySQL e schema,
+   somente nas operações de onboarding previstas neste addendum. Não há URL externa,
+   interceptação, mock, Jest ou cliente HTTP substituindo a API ou o banco nesse caminho.
 3. **Presença e hardware:** eventos de presença, simulador da catraca e equipamento físico
    não fazem parte deste recorte. Nenhum deles é pré-condição ou evidência do E2E.
 
-Um teste só pode ser chamado de E2E R2-02 quando satisfizer a segunda classe e deixar a
-primeira apenas como evidência complementar. Usar HTTP para acelerar uma etapa não permite
-apresentar o conjunto como E2E. Automação que apenas renderiza DOM, usa jsdom ou intercepta
+Um teste só pode ser chamado de E2E R2-02 quando satisfizer a segunda classe no Windows 11
+x64 e deixar a primeira apenas como evidência complementar. Usar HTTP para acelerar uma etapa
+não permite apresentar o conjunto como E2E. Automação que apenas renderiza DOM, usa jsdom ou intercepta
 as chamadas também fica fora da definição.
 
 ### 3. Primeiro acesso e retomada lógica
@@ -438,28 +434,40 @@ O par de artefatos precisa ser exatamente:
 - API [`6a69f43`](https://github.com/Nexus-Evolution-Tech/SAGE-API/commit/6a69f43).
 
 Uma execução com outro commit, artefato sem origem verificável ou mistura de versões não
-é evidência do E2E R2-02. Antes de iniciar, o pacote futuro deve comprovar: snapshot limpo,
-runtime compatível, banco descartável, sequência de inicialização disponível, aplicação
-acessível pelo navegador e runner capaz de iniciar navegador real.
+é evidência do E2E R2-02. Antes de iniciar o único workflow/ensaio Windows 11 x64, o
+pacote futuro deve comprovar: snapshot limpo, runtime compatível, processos locais de
+frontend/API e MySQL/schema descartáveis, readiness verificável, sequência de inicialização
+disponível, aplicação acessível pelo Chromium e runner capaz de iniciar Chromium real.
+Ao terminar, o cleanup estrito deve encerrar o Chromium e os processos locais e restaurar o snapshot;
+sem readiness ou cleanup verificáveis, não há aceite.
+
+A lacuna de mecanismo local e documentado para MySQL/schema continua sendo pré-condição
+separada e bloqueia o runner enquanto não for especificada e revisada. Este addendum não
+cria bootstrap, script ou entrypoint para contorná-la.
 
 Se o runner de navegador não existir, não iniciar ou não conseguir abrir o navegador, a
 pré-condição falha e o E2E fica **não executado**. Pode-se registrar separadamente o
 resultado dos testes HTTP/contrato que forem possíveis, mas não converter isso em E2E verde,
 nem avançar o status por inferência, nem instalar um comando não previsto neste documento.
 O pacote deve relatar a ausência do runner e parar a conclusão de navegador até que a
-dependência seja especificada, instalada de forma revisada e repetida nos dois ambientes.
+dependência seja especificada, instalada de forma revisada e verificada no workflow/ensaio
+Windows 11 x64. Ubuntu permanece N/A neste ciclo, sem execução, aceite ou evidência.
 
 ### 5. Critérios de aceite do pacote E2E R2-02
 
-O pacote futuro só é aceito quando apresentar evidência reproduzível, sanitizada e separada
-por ambiente para todos os itens abaixo:
+O pacote futuro só é aceito quando apresentar evidência reproduzível e sanitizada do único
+workflow/ensaio Windows 11 x64 para todos os itens abaixo. Ubuntu é N/A neste ciclo e não
+produz evidência, sucesso, falha ou cobertura parcial:
 
-- [ ] Ubuntu e Windows iniciam a mesma dupla de commits, cada qual a partir de snapshot
+- [ ] O workflow/ensaio Windows 11 x64 inicia a mesma dupla de commits a partir de snapshot
       limpo, usando somente entrypoints/runtime existentes ou previamente revisados.
 - [ ] A API passa sua preparação e testes existentes; seus resultados são classificados
       como HTTP/contrato quando não houver navegador real.
-- [ ] O runner abre navegador real e o teste navega pela aplicação frontend até o fluxo de
-      onboarding; ausência do runner reprova a pré-condição, não gera aprovação parcial.
+- [ ] O runner abre Chromium real e o teste navega somente pela aplicação local frontend até
+      o fluxo de onboarding; ausência do runner reprova a pré-condição, não gera aprovação parcial.
+- [ ] Os processos locais frontend/API e MySQL/schema passam readiness verificável antes
+      do fluxo e cleanup estrito depois dele, incluindo o Chromium; não se inventa bootstrap
+      para suprir lacuna.
 - [ ] A abertura de `/onboarding` lê a projeção inicial por `GET /onboarding`, e uma chamada
       válida a `POST /onboarding/steps/{step}/resume` inicia/retoma somente o passo elegível.
 - [ ] Falha, timeout, passo fora de ordem ou resultado desconhecido permanece visível e não
